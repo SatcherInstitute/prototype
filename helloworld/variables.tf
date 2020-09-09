@@ -33,25 +33,21 @@ variable "gcs_code_bucket" {
 variable "bq_dataset_name" {
   description   = "Name of the landing BigQuery Dataset"
   type          = string
-  default       = "di_landing"
 }
 
 variable "bq_table_name" {
   description   = "Name of the landing BigQuery Table"
   type          = string
-  default       = "di_landing_table"
 }
 
 variable "gcf_name_1" {
   description   = "Name of GCF 1"
   type          = string
-  default       = "gcf_1_di_url_file_to_gcs"
 }
 
 variable "gcf_name_2" {
   description   = "Name of GCF 2"
   type          = string
-  default       = "gcf_2_di_gcs_csv_to_bq"
 }
 
 variable "pubsub_trigger_topic_name" {
