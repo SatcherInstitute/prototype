@@ -8,50 +8,51 @@ CREATE temp table cdc_pdccr_uuid_base AS(
     LPAD(CAST(fips_code AS STRING), 5, "0") AS fips,
     cdc_pdccr.*
   FROM
-    `fellowship-test-internal.suk_sandbox.cdc_provisional_death_count_county_race` cdc_pdccr
+    `suk_sandbox.cdc_provisional_death_count_county_race` cdc_pdccr
   JOIN
     `bigquery-public-data.geo_us_boundaries.counties` geo
   ON
     LPAD(CAST(fips_code AS STRING), 5, "0") = geo.county_fips_code);
 
-# Create intermediary table that joins with the Urgent Care Facility data,
-# joined by FIPS Code, and creates REPEATED column with urgent care facilities
-# that match the FIPS Code.
-WITH
-cdc_pdccr_urgent_care AS (
-  SELECT
-    cdc_pdccr_uuid_base.uuid,
-    ARRAY_AGG(
-      STRUCT( ucf.id,
-        ucf.name,
-        st_geogpoint(ucf.x_26, ucf.y_27) as geog_pt,
-        ucf.address,
-        ucf.address2,
-        ucf.city,
-        ucf.state,
-        ucf.zip,
-        ucf.zipp4,
-        ucf.county,
-        ucf.fips,
-        ucf.directions) 
-      IGNORE NULLS ) AS ufc_ids
-  FROM
-    cdc_pdccr_uuid_base
-  LEFT OUTER JOIN
-    `fellowship-test-internal.suk_sandbox.urgent_care_facilities` ucf
-  ON
-    cdc_pdccr_uuid_base.fips = CAST(ucf.fips AS string)
-  GROUP BY
-    cdc_pdccr_uuid_base.uuid )
+CREATE OR REPLACE TABLE `suk_sandbox.pdccr_ucf` as (
+  # Create intermediary table that joins with the Urgent Care Facility data,
+  # joined by FIPS Code, and creates REPEATED column with urgent care facilities
+  # that match the FIPS Code.
+  WITH
+  cdc_pdccr_urgent_care AS (
+    SELECT
+      cdc_pdccr_uuid_base.uuid,
+      ARRAY_AGG(
+        STRUCT( ucf.id,
+          ucf.name,
+          st_geogpoint(ucf.x_26, ucf.y_27) as geog_pt,
+          ucf.address,
+          ucf.address2,
+          ucf.city,
+          ucf.state,
+          ucf.zip,
+          ucf.zipp4,
+          ucf.county,
+          ucf.fips,
+          ucf.directions) 
+        IGNORE NULLS ) AS ucf_ids
+    FROM
+      cdc_pdccr_uuid_base
+    LEFT OUTER JOIN
+      `suk_sandbox.urgent_care_facilities` ucf
+    ON
+      cdc_pdccr_uuid_base.fips = CAST(ucf.fips AS string)
+    GROUP BY
+      cdc_pdccr_uuid_base.uuid )
 
-# Join back with original PDCCR table to get all the remaining columns,
-# and count the number of UCF locations for each row.
-SELECT
-  cdc_pdccr_uuid_base.*,
-  if(cdc_pdccr_urgent_care.ufc_ids[OFFSET(0)].name is null, 0, ARRAY_LENGTH(cdc_pdccr_urgent_care.ufc_ids)) as uCF_count,
-  cdc_pdccr_urgent_care.ufc_ids
-FROM
-  cdc_pdccr_uuid_base,
-  cdc_pdccr_urgent_care
-WHERE
-  cdc_pdccr_uuid_base.uuid = cdc_pdccr_urgent_care.uuid
+  # Join back with original PDCCR table to get all the remaining columns,
+  # and count the number of UCF locations for each row.
+  SELECT
+    cdc_pdccr_uuid_base.*,
+    if(cdc_pdccr_urgent_care.ucf_ids[OFFSET(0)].name is null, 0, ARRAY_LENGTH(cdc_pdccr_urgent_care.ucf_ids)) as ucf_count,
+    cdc_pdccr_urgent_care.ucf_ids
+  FROM
+    cdc_pdccr_uuid_base,
+    cdc_pdccr_urgent_care
+  WHERE
+    cdc_pdccr_uuid_base.uuid = cdc_pdccr_urgent_care.uuid)
