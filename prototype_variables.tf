@@ -19,3 +19,9 @@ variable "gcs_region" {
   type          = string
   default       = "US"
 }
+
+variable "bq_dataset_name" {
+  description   = "BigQuery Main Dataset"
+  type          = string
+}
+

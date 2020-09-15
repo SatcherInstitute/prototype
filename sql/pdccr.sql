@@ -8,13 +8,13 @@ CREATE temp table cdc_pdccr_uuid_base AS(
     LPAD(CAST(fips_code AS STRING), 5, "0") AS fips,
     cdc_pdccr.*
   FROM
-    `suk_sandbox.cdc_provisional_death_count_county_race` cdc_pdccr
+    `prototype_tf_main_ingest.cdc_pdccr` cdc_pdccr
   JOIN
     `bigquery-public-data.geo_us_boundaries.counties` geo
   ON
     LPAD(CAST(fips_code AS STRING), 5, "0") = geo.county_fips_code);
 
-CREATE OR REPLACE TABLE `suk_sandbox.pdccr_ucf` as (
+CREATE OR REPLACE TABLE `prototype_tf_main_ingest.pdccr_ucf_joined` as (
   # Create intermediary table that joins with the Urgent Care Facility data,
   # joined by FIPS Code, and creates REPEATED column with urgent care facilities
   # that match the FIPS Code.
@@ -39,7 +39,7 @@ CREATE OR REPLACE TABLE `suk_sandbox.pdccr_ucf` as (
     FROM
       cdc_pdccr_uuid_base
     LEFT OUTER JOIN
-      `suk_sandbox.urgent_care_facilities` ucf
+      `prototype_tf_main_ingest.ucf` ucf
     ON
       cdc_pdccr_uuid_base.fips = CAST(ucf.fips AS string)
     GROUP BY
