@@ -8,3 +8,14 @@ variable "compute_region" {
   type          = string
   default       = "us-central1"
 }
+
+variable "gcs_landing_bucket" {
+  description   = "Name of the landing GCS bucket"
+  type          = string
+}
+
+variable "gcs_region" {
+  description   = "Region for Google Cloud Storage"
+  type          = string
+  default       = "US"
+}
