@@ -1,10 +1,10 @@
 # This file contains code for downloading a file from a url and uploading
 # it to a GCS bucket.
 
+import logging
+import os
 from google.cloud import storage
 import google.cloud.exceptions
-import io, os
-import logging
 import requests
 
 
@@ -28,9 +28,9 @@ def url_file_to_gcs(url, url_params, gcs_bucket, dest_filename):
     bucket = storage_client.get_bucket(gcs_bucket)
     blob = bucket.blob(dest_filename)
     blob.upload_from_filename(local_path)
-    os.remove(local_file_path)
-  except requests.HTTPError as e:
-    logging.error("HTTP error for url {}: {}".format(url, e))
+    os.remove(local_path)
+  except requests.HTTPError as err:
+    logging.error("HTTP error for url %s: %s", url, err)
   except google.cloud.exceptions.NotFound:
-    logging.error("GCS Bucket {} not found".format(gcs_bucket))
+    logging.error("GCS Bucket %s not found", gcs_bucket)
     
