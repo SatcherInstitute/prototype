@@ -118,16 +118,16 @@ resource "google_bigquery_job" "bq_job_load_ucf" {
  * [END] Table Creation
  */
 
-resource "google_bigquery_table" "bqt_pdccrucfjoin" {
+resource "google_bigquery_table" "bqt_pdccr_ucf_joined" {
   dataset_id = google_bigquery_dataset.bq_dataset.dataset_id
   table_id   = "pdccrucfjoin"
 
   labels = {
-    "derived-table" ="yes"
+    "derived-table" = "yes"
   }
 }
 # Use the ./sql/pdccr.sql file
-resource "google_bigquery_job" "bq_job_pdccrucfjoin" {
+resource "google_bigquery_job" "bq_job_pdccr_ucf_joined" {
   depends_on = [google_bigquery_job.bq_job_load_pdccr, google_bigquery_job.bq_job_load_ucf]
   job_id     = "pdccrucfjoin${formatdate("YYYYMMDDhhmmss",timestamp())}"
 
