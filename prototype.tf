@@ -121,7 +121,7 @@ resource "google_bigquery_job" "bq_job_load_ucf" {
 
 resource "google_bigquery_table" "bqt_pdccr_ucf_joined" {
   dataset_id = google_bigquery_dataset.bq_dataset.dataset_id
-  table_id   = "pdccrucfjoin"
+  table_id   = "pdccr_ucf_joined"
 
   labels = {
     "derived-table" = "yes"
@@ -136,7 +136,7 @@ resource "google_bigquery_job" "bq_job_pdccr_ucf_joined" {
     query = file("./sql/pdccr.sql")
 
     destination_table {
-      table_id = google_bigquery_table.bqt_pdccrucfjoin.id
+      table_id = google_bigquery_table.bqt_pdccr_ucf_joined.id
     }
 
     allow_large_results = true
