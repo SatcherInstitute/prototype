@@ -1,7 +1,7 @@
 import json
 import logging
 from pandas import DataFrame
-from gcs_to_bq_util import load_values_as_dataframe, append_dataframe_to_bq
+from .gcs_to_bq_util import load_values_as_dataframe, append_dataframe_to_bq
 
 
 # TODO replace aaron_census_test with the dataset we'll end up actually using
