@@ -16,6 +16,12 @@ resource "google_storage_bucket" "gcs_data_ingestion_landing_bucket" {
     # https://www.terraform.io/docs/providers/google/r/storage_bucket.html#force_destroy
 }
 
+# Bucket for storing the GCF code
+resource "google_storage_bucket" "gcf_code" {
+  name                    = var.gcf_code_bucket
+  location                = var.gcs_region
+}
+
 /*
  * [END] GCS Resources
  */
@@ -145,4 +151,73 @@ resource "google_bigquery_job" "bq_job_pdccr_ucf_joined" {
 
 /*
  * [END] BigQuery Setup
+ */
+
+/*
+ * [BEGIN] GCF Setup
+ */
+
+# Create a ZIP of the data_ingestion folder.
+data "archive_file" "upload_to_gcs_zip" {
+ type                     = "zip"
+ source_dir               = "${var.gcf_code_path}/data_ingestion/"
+ output_path              = "${var.gcf_code_path}/upload_to_gcs.zip"
+}
+
+# Place the ZIP file into the gcf_code bucket
+resource "google_storage_bucket_object" "upload_to_gcs_code" {
+ name                     = "upload_to_gcs.zip"
+ bucket                   = google_storage_bucket.gcf_code.name
+ source                   = data.archive_file.upload_to_gcs_zip.output_path 
+}
+
+# Configure the actual Cloud Function for uploading data to GCS
+resource "google_cloudfunctions_function" "data_ingestion_to_gcs" {
+  name                     = var.gcf_upload_to_gcs_name
+  description              = "Downloads data files from the internet and uploads to a GCS bucket"
+  available_memory_mb      = 256
+  source_archive_bucket    = google_storage_bucket.gcf_code.name
+  source_archive_object    = google_storage_bucket_object.upload_to_gcs_code.name
+  timeout                  = 120
+  entry_point              = "ingest_data"
+  runtime                  = "python37"
+  event_trigger {
+     event_type            = "google.pubsub.topic.publish"
+     resource              = google_pubsub_topic.upload_to_gcs.name
+  }
+}
+
+/*
+ * [END] GCF Setup
+ */
+
+/*
+ * [BEGIN] Cloud Scheduler Setup
+ */
+
+# Create a Pub/Sub topic to trigger data_ingestion_to_gcs.
+resource "google_pubsub_topic" "upload_to_gcs" {
+  name                    = var.upload_to_gcs_topic_name
+}
+
+# Create a Cloud Scheduler task to trigger the upload_to_gcs Pub/Sub event for household income data.
+resource "google_cloud_scheduler_job" "household_income_scheduler" {
+  name                    = var.household_income_scheduler_name
+  description             = "Triggers uploading household income data from SAIPE to GCS every Thursday at 8:10 ET."
+  time_zone               = "America/New_York"
+  schedule                = "10 8 * * 5"
+
+  pubsub_target {
+    topic_name            = google_pubsub_topic.upload_to_gcs.id
+    data                  = base64encode(jsonencode({
+                              "id":"HOUSEHOLD_INCOME",
+                              "url":"https://api.census.gov/data/timeseries/poverty/saipe",
+                              "gcs_bucket": google_storage_bucket.gcs_data_ingestion_landing_bucket.name,
+                              "filename":"SAIPE"
+                            }))
+  }
+}
+
+/*
+ * [END] Cloud Scheduler Setup
  */
