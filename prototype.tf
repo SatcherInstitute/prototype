@@ -191,6 +191,64 @@ resource "google_cloudfunctions_function" "data_ingestion_to_gcs" {
  * [END] GCF Setup
  */
 
+ /*
+  * [BEGIN] Cloud Run Setup
+  */
+
+# Service account used to invoke the cloud run service through the push subscription.
+resource "google_service_account" "ingestion_identity" {
+  account_id = var.ingestion_identity_id
+}
+
+# Push subscription for upload_to_gcs topic that invokes the run service.
+resource "google_pubsub_subscription" "ingestion_subscription" {
+  name = var.ingestion_subscription_name
+  topic = google_pubsub_topic.upload_to_gcs.name
+  
+  ack_deadline_seconds = 20
+  
+  push_config {
+    push_endpoint = google_cloud_run_service.ingestion_service.status.0.url
+    oidc_token {
+      service_account_email = google_service_account.ingestion_identity.email
+    }
+  }
+}
+
+# Give the ingestion service account the invoker role so that it can call the ingestion service.
+resource "google_cloud_run_service_iam_binding" "ingestion_service_binding" {
+  location = var.compute_region
+  service = google_cloud_run_service.ingestion_service.name
+  role = "roles/run.invoker"
+  members = [
+    format("serviceAccount:%s", google_service_account.ingestion_identity.email),
+  ]
+}
+
+# Cloud Run service for uploading data to gcs.
+resource "google_cloud_run_service" "ingestion_service" {
+  name     = var.run_ingestion_service_name
+  location = var.compute_region
+
+  template {
+    spec {
+      containers {
+        image = var.run_ingestion_image_path
+      }
+    }
+  }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+  autogenerate_revision_name = true
+}
+
+/* 
+ * [END] Cloud Run Setup
+ */  
+
 /*
  * [BEGIN] Cloud Scheduler Setup
  */

@@ -49,3 +49,23 @@ variable "household_income_scheduler_name" {
   description   = "Name of the Cloud Scheduler job for downloading household income data"
   type          = string
 }
+
+variable "run_ingestion_service_name" {
+  description = "Name of the Cloud Run service for data ingestion"
+  type        = string
+}
+
+variable "run_ingestion_image_path" {
+  description = "Path to container image for the Cloud Run ingestion service"
+  type        = string
+}
+
+variable "ingestion_identity_id" {
+  description = "Account id of the service account used to trigger data ingestion"
+  type = string
+}
+
+variable "ingestion_subscription_name" {
+  description = "Name of push subscription that invokes the ingestion service"
+  type = string
+}
