@@ -5,3 +5,4 @@ jenniebrown.tfvars
 terraform.tfstate
 terraform.tfstate.backup
 upload_to_gcs.zip
+venv

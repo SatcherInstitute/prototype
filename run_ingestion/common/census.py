@@ -1,7 +1,7 @@
 from .di_url_file_to_gcs import url_file_to_gcs
 
 
-def get_columns():
+def get_household_income_columns():
   """Returns column names of SAIPE fields and their descriptions."""
   return {
     'COUNTY': 'County FIPS Code',
@@ -30,8 +30,14 @@ def upload_household_income(url, gcs_bucket, filename):
   """Uploads household income data from SAIPE to GCS bucket for all available years."""
   year_range = {1989, 1993, *range(1995, 2019)}
   for year in year_range:
-    url_params = {'get': ','.join(get_columns().keys()),
+    url_params = {'get': ','.join(get_household_income_columns().keys()),
                   'for': 'county:*',
                   'in': 'state:*',
                   'time': year}
     url_file_to_gcs(url, url_params, gcs_bucket, '{}_{}.csv'.format(filename, year))
+
+
+def upload_state_names(url, gcs_bucket, filename):
+  """Uploads state names and FIPS codes from census to GCS bucket."""
+  url_params = {'get': 'NAME', 'for': 'state:*'}
+  url_file_to_gcs(url, url_params, gcs_bucket, filename)
