@@ -47,3 +47,11 @@ During development you can also just run `pip install new_dep`, but remember to 
 
 ## Python environment setup
 TODO instructions for us all to be on the same python virtual environment setup.
+
+## Building a Cloud Run image manually
+
+Run `gcloud builds submit --tag gcr.io/{PROJECT_ID}/{YOUR_IMAGE_NAME}` from the directory which contains the Dockerfile for the service
+
+Then set the service's image path variable in the terraform configuration to the tag. 
+
+TODO: Local docker build instructions
