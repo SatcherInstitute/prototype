@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+import os
 from common.census import upload_household_income, upload_state_names
 from common.pubsub_publisher import notify_data_ingested
 from common.di_url_file_to_gcs import url_file_to_gcs
@@ -19,6 +20,7 @@ def ingest_data():
      appropriate data ingestion workflow.
      
      Returns 400 for a bad request or 204 for success."""
+
   envelope = request.get_json()
   if not envelope:
     logging.error('No Pub/Sub message received.')
@@ -52,7 +54,17 @@ def ingest_data():
   url = event_dict['url']
   gcs_bucket = event_dict['gcs_bucket']
   filename = event_dict['filename']
-    
+
+  if 'PROJECT_ID' not in os.environ:
+    logging.error("Environment variable PROJECT_ID missing.")
+    return ('', 400)
+  if 'NOTIFY_DATA_INGESTED_TOPIC' not in os.environ:
+    logging.error("Environment variable NOTIFY_DATA_INGESTED_TOPIC missing.")
+    return ('', 400)
+
+  project_id = os.environ['PROJECT_ID']
+  notify_data_ingested_topic = os.environ['NOTIFY_DATA_INGESTED_TOPIC']
+
   logging.info(f'Ingesting {id} data')
   if id == _HOUSEHOLD_INCOME:
     upload_household_income(url, gcs_bucket, filename)
@@ -64,7 +76,8 @@ def ingest_data():
     logging.warning("ID: %s, is not a valid id", id)
     return ('', 400)
 
-  notify_data_ingested(id, gcs_bucket, filename)    
+  notify_data_ingested(
+      project_id, notify_data_ingested_topic, id, gcs_bucket, filename)  
   return ('', 204)
 
 if __name__ == "__main__":

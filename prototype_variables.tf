@@ -40,13 +40,28 @@ variable "upload_to_gcs_topic_name" {
   type        = string
 }
 
+variable "notify_data_ingested_topic" {
+  description = "The name of the topic that gets notified when the data is uploaded to GCS"
+  type        = string
+}
+
 variable "gcf_upload_to_gcs_name" {
   description = "Name of the GCF function which uploads files to GCS"
   type        = string
 }
 
+variable "gcf_gcs_to_bq_name" {
+  description = "Name of the GCF function which moves data from GCS to BigQuery"
+  type        = string
+}
+
 variable "household_income_scheduler_name" {
   description = "Name of the Cloud Scheduler job for downloading household income data"
+  type        = string
+}
+
+variable "state_names_scheduer_name" {
+  description = "Name of the Cloud Scheduler job for downloading state name data"
   type        = string
 }
 

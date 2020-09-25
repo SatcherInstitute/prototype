@@ -154,7 +154,7 @@ resource "google_bigquery_job" "bq_job_pdccr_ucf_joined" {
  */
 
 /*
- * [BEGIN] GCF Setup
+ * [BEGIN] GCF upload to GCS Setup
  */
 
 # Create a ZIP of the data_ingestion folder.
@@ -185,10 +185,55 @@ resource "google_cloudfunctions_function" "data_ingestion_to_gcs" {
     event_type = "google.pubsub.topic.publish"
     resource   = google_pubsub_topic.upload_to_gcs.name
   }
+  environment_variables = {
+    PROJECT_ID                 = var.project_id
+    NOTIFY_DATA_INGESTED_TOPIC = var.notify_data_ingested_topic
+  }
 }
 
 /*
- * [END] GCF Setup
+ * [END] GCF upload to GCS Setup
+ */
+
+/*
+ * [BEGIN] GCF GCS to BigQuery Setup
+ */
+
+# Create a ZIP of the data_ingestion folder.
+data "archive_file" "gcs_to_bq_zip" {
+  type        = "zip"
+  source_dir  = "${var.gcf_code_path}/gcs_to_bq/"
+  output_path = "${var.gcf_code_path}/gcs_to_bq.zip"
+}
+
+# Place the ZIP file into the gcf_code bucket
+resource "google_storage_bucket_object" "gcs_to_bq_code" {
+  name   = "gcs_to_bq.zip"
+  bucket = google_storage_bucket.gcf_code.name
+  source = data.archive_file.gcs_to_bq_zip.output_path
+}
+
+# Configure Cloud Function for moving data from GCS to BigQuery
+resource "google_cloudfunctions_function" "gcs_to_bq" {
+  name                  = var.gcf_gcs_to_bq_name
+  description           = "Moves data from GCS bucket to BigQuery"
+  available_memory_mb   = 256
+  source_archive_bucket = google_storage_bucket.gcf_code.name
+  source_archive_object = google_storage_bucket_object.gcs_to_bq_code.name
+  timeout               = 120
+  entry_point           = "ingest_bucket_to_bq"
+  runtime               = "python37"
+  event_trigger {
+    event_type = "google.pubsub.topic.publish"
+    resource   = var.notify_data_ingested_topic
+  }
+  environment_variables = {
+    DATASET_NAME = var.bq_dataset_name
+  }
+}
+
+/*
+ * [END] GCF GCS to BigQuery Setup
  */
 
 /*
@@ -267,6 +312,14 @@ resource "google_cloud_run_service" "ingestion_service" {
     spec {
       containers {
         image = var.run_ingestion_image_path
+        env {
+          name  = "PROJECT_ID"
+          value = var.project_id
+        }
+        env {
+          name  = "NOTIFY_DATA_INGESTED_TOPIC"
+          value = var.notify_data_ingested_topic
+        }
       }
       service_account_name = google_service_account.ingestion_runner_identity.email
     }
@@ -306,6 +359,24 @@ resource "google_cloud_scheduler_job" "household_income_scheduler" {
       "url" : "https://api.census.gov/data/timeseries/poverty/saipe",
       "gcs_bucket" : google_storage_bucket.gcs_data_ingestion_landing_bucket.name,
       "filename" : "SAIPE"
+    }))
+  }
+}
+
+# Create a Cloud Scheduler task to trigger the upload_to_gcs Pub/Sub event for state names data
+resource "google_cloud_scheduler_job" "state_names_scheduler" {
+  name        = var.state_names_scheduer_name
+  description = "Triggers uploading state names data from the census API to GCS every Thursday at 8:10 ET."
+  time_zone   = "America/New_York"
+  schedule    = "10 8 * * 5"
+
+  pubsub_target {
+    topic_name = google_pubsub_topic.upload_to_gcs.id
+    data = base64encode(jsonencode({
+      "id" : "STATE_NAMES",
+      "url" : "https://api.census.gov/data/2010/dec/sf1",
+      "gcs_bucket" : google_storage_bucket.gcs_data_ingestion_landing_bucket.name,
+      "filename" : "state_names.json"
     }))
   }
 }

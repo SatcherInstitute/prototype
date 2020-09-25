@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+import os
 from common.census_to_bq import write_state_names_to_bq
 
 
@@ -41,5 +42,11 @@ def ingest_bucket_to_bq(event, context):
   gcs_bucket = attributes['gcs_bucket']
   filename = attributes['filename']
 
+  if 'DATASET_NAME' not in os.environ:
+    logging.error("Environment variable DATASET_NAME missing.")
+    return
+
+  dataset = os.environ['DATASET_NAME']
+
   if id == _STATE_NAMES:
-    write_state_names_to_bq('state_names', gcs_bucket, filename)
+    write_state_names_to_bq(dataset, 'state_names', gcs_bucket, filename)

@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+import os
 from common.census import upload_household_income, upload_state_names
 from common.pubsub_publisher import notify_data_ingested
 from common.di_url_file_to_gcs import url_file_to_gcs
@@ -26,18 +27,30 @@ def ingest_data(event, context):
     event_dict = json.loads(data)
   except json.JSONDecodeError as err:
     logging.error("Could not load json object: %s", err)
+    return
 
   if 'id' not in event_dict:
     logging.error("PubSub data missing 'id' field")
     return
   if 'url' not in event_dict or 'gcs_bucket' not in event_dict or 'filename' not in event_dict:
-    logging.error("Pubsub data must contain fields 'url', 'gcs_bucket', and 'filename'")
+    logging.error(
+        "Pubsub data must contain fields 'url', 'gcs_bucket', and 'filename'")
     return
-  
+
   id = event_dict['id']
   url = event_dict['url']
   gcs_bucket = event_dict['gcs_bucket']
   filename = event_dict['filename']
+
+  if 'PROJECT_ID' not in os.environ:
+    logging.error("Environment variable PROJECT_ID missing.")
+    return
+  if 'NOTIFY_DATA_INGESTED_TOPIC' not in os.environ:
+    logging.error("Environment variable NOTIFY_DATA_INGESTED_TOPIC missing.")
+    return
+
+  project_id = os.environ['PROJECT_ID']
+  notify_data_ingested_topic = os.environ['NOTIFY_DATA_INGESTED_TOPIC']
 
   if id == _HOUSEHOLD_INCOME:
     upload_household_income(url, gcs_bucket, filename)
@@ -45,7 +58,8 @@ def ingest_data(event, context):
     upload_state_names(url, gcs_bucket, filename)
   elif id == _URGENT_CARE_FACILITIES:
     url_file_to_gcs(url, None, gcs_bucket, filename)
-  else: 
+  else:
     logging.warning("ID: %s, is not a valid id", id)
 
-  notify_data_ingested(id, gcs_bucket, filename)
+  notify_data_ingested(
+      project_id, notify_data_ingested_topic, id, gcs_bucket, filename)

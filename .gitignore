@@ -1,8 +1,10 @@
 .vscode
-data_ingestion/__pycache__
+__pycache__
 .terraform/plugins
 jenniebrown.tfvars
 terraform.tfstate
 terraform.tfstate.backup
 upload_to_gcs.zip
+gcs_to_bq.zip
 venv
+.venv

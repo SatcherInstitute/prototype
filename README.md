@@ -1,7 +1,7 @@
 ## Deploying functions manually
 This may be useful either:
 - until terraform and fully automated deployment is set up
-- for manual testing. Different cloud functions can be deployed from the same source code, so you can deploy to a test function without affecting the main thing.
+- for manual testing/experimentation. Different cloud functions can be deployed from the same source code, so you can deploy to a test function without affecting any of the other resources.
 
 ### One-time setup
 Install Cloud SDK ([Quickstart](https://cloud.google.com/sdk/docs/quickstart))
@@ -28,14 +28,16 @@ A full list of options can be found [here](https://cloud.google.com/sdk/gcloud/r
 
 ## Testing functions
 To test a function triggered by a topic, run
-`gcloud pubsub topics publish projects/fellowship-test-internal/topics/your_topic_name --message "your_message"`
+`gcloud pubsub topics publish projects/temporary-sandbox-290223/topics/your_topic_name --message "your_message"`
 - your_topic_name is the name of the topic the function specified as a trigger.
 - your_message is the json message that will be serialized and passed to the `'data'` property of the event.
 
 ### Testing example
 For example, you can use the following command to trigger ingestion for the list of state names and state codes (note that backslashes are required on Windows because Windows is weird and messes up serialization if you don't. OS X or Linux may not require backslashes, I'm not sure).
 
-`gcloud pubsub topics publish projects/fellowship-test-internal/topics/aaron-test-pubsub --message "{\"id\":\"STATE_NAMES\", \"url\":\"https://api.census.gov/data/2010/dec/sf1\", \"gcs_bucket\":\"population_bucket\", \"filename\":\"state_names.json\"}"`
+`gcloud pubsub topics publish projects/temporary-sandbox-290223/topics/{upload_to_gcs_topic_name} --message "{\"id\":\"STATE_NAMES\", \"url\":\"https://api.census.gov/data/2010/dec/sf1\", \"gcs_bucket\":{gcs_landing_bucket}, \"filename\":\"state_names.json\"}"`
+
+where `upload_to_gcs_topic_name` and `gcs_landing_bucket` are the same as the terraform variables of the same name
 
 ## Python function dependencies
 When developing, if a new dependency is needed:
@@ -55,3 +57,12 @@ Run `gcloud builds submit --tag gcr.io/{PROJECT_ID}/{YOUR_IMAGE_NAME}` from the 
 Then set the service's image path variable in the terraform configuration to the tag. 
 
 TODO: Local docker build instructions
+
+## Deploying your own instance with terraform
+To run the pipeline with terraform, create your own `terraform.tfvars` file in the same directory as the other terraform files. For each variable declared in `prototype_variables.tf` that doesn't have a default, add your own for testing. Typically your own variables should be unique and can just be prefixed with your name or ldap. There are some that have specific requirements like project ids, code paths, and image paths.
+
+Currently the setup deploys both a data ingestion cloud funtion and a data ingestion cloud run instance. These are duplicates of each other. Once we get the cloud run one fully working we will delete the cloud fuction, but for now if you want to not have a duplicate while developing you can just comment out the setup for whichever one you don't want to use in `prototype.tf`
+
+Note that currently terraform doesn't diff the contents of the functions/cloud run service, so to get them to redeploy you can either
+1. Call `terraform destroy` every time before `terraform apply`, or
+2. Use [`terraform taint`](https://www.terraform.io/docs/commands/taint.html) to mark a resource as requiring redeploy
