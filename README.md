@@ -58,6 +58,42 @@ Then set the service's image path variable in the terraform configuration to the
 
 TODO: Local docker build instructions
 
+## Cloud Run local testing with an emulator
+
+The [Cloud Code](https://cloud.google.com/code) plugin for
+[VS Code](https://code.visualstudio.com/) and [JetBrains IDEs](https://www.jetbrains.com/)
+lets you locally run and debug your container image in a Cloud Run
+emulator within your IDE. The emulator allows you configure an environment that is
+representative of your service running on Cloud Run.
+
+### Installation
+1. Install Cloud Run for [VS Code](/code/docs/vscode/install) or a [JetBrains IDE](/code/docs/intellij/install).
+0. Follow the instructions for locally developing and debugging within your IDE.
+   - **VS Code**: Locally [developing](/code/docs/vscode/developing-a-cloud-run-app) and [debugging](/code/docs/intellij/debugging-a-cloud-run-app)
+   - **IntelliJ**: Locally [developing](/code/docs/vscode/developing-a-cloud-run-app) and [debugging](/code/docs/intellij/debugging-a-cloud-run-app)
+
+### Running the emualtor
+1. After installing the VS Code plugin, a `Cloud Code` entry should be added to the bottom toolbar of your editor.
+2. Clicking on this and selecting the `Run on Cloud Run emulator` option will begin the process of setting up the configuration for your Cloud Run service.
+3. Give your service a name
+4. Set the service container image url with the following format: `gcr.io/<PROJECT_ID>/<NAME>`
+5. Make sure the builder is set to `Docker` and the correct Dockerfile path is selected, `prototype/run_ingestion/Dockerfile`
+7. Ensure the `Automatically re-build and re-run on changes` checkbox is selected for hot reloading.
+6. Click run
+
+### Sending requests
+After your Docker container successfully builds and is running locally you can start sending requests.
+
+1. Open a terminal
+2. Send curl requests in the following format: 
+
+```DATA=$(printf '{"id":<INGESTION_ID>,"url":<INGESTION_URL>,"gcs_bucket":<BUCKET_NAME>,"filename":<FILE_NAME>}' |base64) && curl --header "Content-Type: application/json" -d '{"message":{"data":"'$DATA'"}}' http://localhost:8080```
+
+### Accessing Google Cloud Services
+1. [Create a service account in Pantheon](https://cloud.google.com/docs/authentication/getting-started)
+2. Using IAM, grant the appropriate permissions to the service account
+3. Inside the `launch.json` file, set the `configuration->service->serviceAccountName` attribute to the service account email you just created.
+
 ## Deploying your own instance with terraform
 To run the pipeline with terraform, create your own `terraform.tfvars` file in the same directory as the other terraform files. For each variable declared in `prototype_variables.tf` that doesn't have a default, add your own for testing. Typically your own variables should be unique and can just be prefixed with your name or ldap. There are some that have specific requirements like project ids, code paths, and image paths.
 
