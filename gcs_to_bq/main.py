@@ -2,11 +2,13 @@ import base64
 import json
 import logging
 import os
-from common.census_to_bq import write_state_names_to_bq
+import common.census_to_bq as census_to_bq
 
 
 _HOUSEHOLD_INCOME = 'HOUSEHOLD_INCOME'
 _STATE_NAMES = 'STATE_NAMES'
+_COUNTY_NAMES = 'COUNTY_NAMES'
+_POPULATION_BY_RACE = 'POPULATION_BY_RACE'
 
 
 def ingest_bucket_to_bq(event, context):
@@ -33,7 +35,7 @@ def ingest_bucket_to_bq(event, context):
   attributes = event['attributes']
   if ('id' not in attributes
       or 'gcs_bucket' not in attributes
-      or 'filename' not in attributes):
+          or 'filename' not in attributes):
     logging.error(
         "Pubsub attributes must contain 'id', 'gcs_bucket', and 'filename'")
     return
@@ -48,5 +50,15 @@ def ingest_bucket_to_bq(event, context):
 
   dataset = os.environ['DATASET_NAME']
 
-  if id == _STATE_NAMES:
-    write_state_names_to_bq(dataset, 'state_names', gcs_bucket, filename)
+  if id == _HOUSEHOLD_INCOME:
+    # TODO implement
+    pass
+  elif id == _STATE_NAMES:
+    census_to_bq.write_state_names_to_bq(
+        dataset, 'state_names', gcs_bucket, filename)
+  elif id == _COUNTY_NAMES:
+    census_to_bq.write_county_names_to_bq(
+        dataset, 'county_names', gcs_bucket, filename)
+  elif id == _POPULATION_BY_RACE:
+    census_to_bq.write_population_by_race_to_bq(
+        dataset, 'population_by_race', gcs_bucket, filename)

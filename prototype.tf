@@ -365,7 +365,7 @@ resource "google_cloud_scheduler_job" "household_income_scheduler" {
 
 # Create a Cloud Scheduler task to trigger the upload_to_gcs Pub/Sub event for state names data
 resource "google_cloud_scheduler_job" "state_names_scheduler" {
-  name        = var.state_names_scheduer_name
+  name        = var.state_names_scheduler_name
   description = "Triggers uploading state names data from the census API to GCS every Thursday at 8:10 ET."
   time_zone   = "America/New_York"
   schedule    = "10 8 * * 5"
@@ -377,6 +377,43 @@ resource "google_cloud_scheduler_job" "state_names_scheduler" {
       "url" : "https://api.census.gov/data/2010/dec/sf1",
       "gcs_bucket" : google_storage_bucket.gcs_data_ingestion_landing_bucket.name,
       "filename" : "state_names.json"
+    }))
+  }
+}
+
+# Create a Cloud Scheduler task to trigger the upload_to_gcs Pub/Sub event for county names data
+resource "google_cloud_scheduler_job" "county_names_scheduler" {
+  name        = var.county_names_scheduler_name
+  description = "Triggers uploading county names data from the census API to GCS every Thursday at 8:10 ET."
+  time_zone   = "America/New_York"
+  schedule    = "10 8 * * 5"
+
+  pubsub_target {
+    topic_name = google_pubsub_topic.upload_to_gcs.id
+    data = base64encode(jsonencode({
+      "id" : "COUNTY_NAMES",
+      "url" : "https://api.census.gov/data/2010/dec/sf1",
+      "gcs_bucket" : google_storage_bucket.gcs_data_ingestion_landing_bucket.name,
+      "filename" : "county_names.json"
+    }))
+  }
+}
+
+# Create a Cloud Scheduler task to trigger the upload_to_gcs Pub/Sub event for population by race data
+resource "google_cloud_scheduler_job" "population_by_race_scheduler" {
+  name        = var.population_by_race_scheduler_name
+  description = "Triggers uploading population by race data from the census API to GCS every Thursday at 8:10 ET."
+  time_zone   = "America/New_York"
+  schedule    = "10 8 * * 5"
+
+  pubsub_target {
+    topic_name = google_pubsub_topic.upload_to_gcs.id
+    data = base64encode(jsonencode({
+      "id" : "POPULATION_BY_RACE",
+      # TODO: figure out how to detect the latest year for this data.
+      "url" : "https://api.census.gov/data/2018/acs/acs5/profile",
+      "gcs_bucket" : google_storage_bucket.gcs_data_ingestion_landing_bucket.name,
+      "filename" : "population_by_race.json"
     }))
   }
 }

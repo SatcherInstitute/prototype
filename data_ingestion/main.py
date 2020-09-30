@@ -2,7 +2,7 @@ import base64
 import json
 import logging
 import os
-from common.census import upload_household_income, upload_state_names
+import common.census as census
 from common.pubsub_publisher import notify_data_ingested
 from common.di_url_file_to_gcs import url_file_to_gcs
 
@@ -10,6 +10,8 @@ from common.di_url_file_to_gcs import url_file_to_gcs
 _HOUSEHOLD_INCOME = 'HOUSEHOLD_INCOME'
 _URGENT_CARE_FACILITIES = 'URGENT_CARE_FACILITIES'
 _STATE_NAMES = 'STATE_NAMES'
+_COUNTY_NAMES = 'COUNTY_NAMES'
+_POPULATION_BY_RACE = 'POPULATION_BY_RACE'
 
 
 def ingest_data(event, context):
@@ -53,9 +55,13 @@ def ingest_data(event, context):
   notify_data_ingested_topic = os.environ['NOTIFY_DATA_INGESTED_TOPIC']
 
   if id == _HOUSEHOLD_INCOME:
-    upload_household_income(url, gcs_bucket, filename)
+    census.upload_household_income(url, gcs_bucket, filename)
   elif id == _STATE_NAMES:
-    upload_state_names(url, gcs_bucket, filename)
+    census.upload_state_names(url, gcs_bucket, filename)
+  elif id == _COUNTY_NAMES:
+    census.upload_county_names(url, gcs_bucket, filename)
+  elif id == _POPULATION_BY_RACE:
+    census.upload_population_by_race(url, gcs_bucket, filename)
   elif id == _URGENT_CARE_FACILITIES:
     url_file_to_gcs(url, None, gcs_bucket, filename)
   else:

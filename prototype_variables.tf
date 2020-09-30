@@ -60,8 +60,18 @@ variable "household_income_scheduler_name" {
   type        = string
 }
 
-variable "state_names_scheduer_name" {
+variable "state_names_scheduler_name" {
   description = "Name of the Cloud Scheduler job for downloading state name data"
+  type        = string
+}
+
+variable "county_names_scheduler_name" {
+  description = "Name of the Cloud Scheduler job for downloading county name data"
+  type        = string
+}
+
+variable "population_by_race_scheduler_name" {
+  description = "Name of the Cloud Scheduler job for downloading population by race data"
   type        = string
 }
 
