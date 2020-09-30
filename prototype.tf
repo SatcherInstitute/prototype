@@ -504,6 +504,30 @@ resource "google_cloud_scheduler_job" "population_by_race_scheduler" {
   }
 }
 
+# Create a Cloud Scheduler task to trigger the upload_to_gcs Pub/Sub event for county adjacency data
+resource "google_cloud_scheduler_job" "county_adjacency_scheduler" {
+  name        = var.county_adjacency_scheduler_name
+  description = "Triggers uploading county adjacency data from the census API to GCS every Thursday at 8:10 ET."
+  time_zone   = "America/New_York"
+  schedule    = "10 8 * * 5"
+
+  pubsub_target {
+    topic_name = google_pubsub_topic.upload_to_gcs.id
+    data = base64encode(jsonencode({
+      "id" : "COUNTY_ADJACENCY",
+      # Note: this is from the National Bureau of Economic Research, which is a
+      # private non-profit. The official data comes from the Census Bureau
+      # directly, but the file they published had formatting issues that caused
+      # issues when trying to decode the data from cloud functions. It may be a
+      # good idea to try to migrate to the official source. At the time of
+      # writing the data is identical.
+      "url": "https://data.nber.org/census/geo/county-adjacency/2010/county_adjacency2010.csv",
+      "gcs_bucket" : google_storage_bucket.gcs_data_ingestion_landing_bucket.name,
+      "filename" : "county_adjacency.csv"
+    }))
+  }
+}
+
 /*
  * [END] Cloud Scheduler Setup
  */

@@ -13,6 +13,7 @@ _HOUSEHOLD_INCOME = 'HOUSEHOLD_INCOME'
 _URGENT_CARE_FACILITIES = 'URGENT_CARE_FACILITIES'
 _STATE_NAMES = 'STATE_NAMES'
 _COUNTY_NAMES = 'COUNTY_NAMES'
+_COUNTY_ADJACENCY = 'COUNTY_ADJACENCY'
 _POPULATION_BY_RACE = 'POPULATION_BY_RACE'
 _CDC_COVID_DEATHS = 'CDC_COVID_DEATHS'
 
@@ -76,7 +77,9 @@ def ingest_data():
     census.upload_county_names(url, gcs_bucket, filename)
   elif id == _POPULATION_BY_RACE:
     census.upload_population_by_race(url, gcs_bucket, filename)
-  elif id == _URGENT_CARE_FACILITIES or id == _CDC_COVID_DEATHS:
+  elif (id == _URGENT_CARE_FACILITIES
+      or id == _CDC_COVID_DEATHS
+      or id == _COUNTY_ADJACENCY):
     url_file_to_gcs(url, None, gcs_bucket, filename)
   else: 
     logging.warning("ID: %s, is not a valid id", id)

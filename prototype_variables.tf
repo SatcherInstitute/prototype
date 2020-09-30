@@ -75,6 +75,11 @@ variable "county_names_scheduler_name" {
   type        = string
 }
 
+variable "county_adjacency_scheduler_name" {
+  description = "Name of the Cloud Scheduler job for downloading county adjacency data"
+  type        = string
+}
+
 variable "population_by_race_scheduler_name" {
   description = "Name of the Cloud Scheduler job for downloading population by race data"
   type        = string

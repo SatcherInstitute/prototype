@@ -3,11 +3,13 @@ import json
 import logging
 import os
 import common.census_to_bq as census_to_bq
+from common.county_adjacency import write_adjacencies_to_bq
 
 
 _HOUSEHOLD_INCOME = 'HOUSEHOLD_INCOME'
 _STATE_NAMES = 'STATE_NAMES'
 _COUNTY_NAMES = 'COUNTY_NAMES'
+_COUNTY_ADJACENCY = 'COUNTY_ADJACENCY'
 _POPULATION_BY_RACE = 'POPULATION_BY_RACE'
 
 
@@ -59,6 +61,9 @@ def ingest_bucket_to_bq(event, context):
   elif id == _COUNTY_NAMES:
     census_to_bq.write_county_names_to_bq(
         dataset, 'county_names', gcs_bucket, filename)
+  elif id == _COUNTY_ADJACENCY:
+    write_adjacencies_to_bq(
+        dataset, 'county_adjacency', gcs_bucket, filename)
   elif id == _POPULATION_BY_RACE:
     census_to_bq.write_population_by_race_to_bq(
         dataset, 'population_by_race', gcs_bucket, filename)
