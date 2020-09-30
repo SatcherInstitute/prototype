@@ -278,6 +278,45 @@ resource "google_project_iam_member" "ingestion_runner_binding" {
   member  = format("serviceAccount:%s", google_service_account.ingestion_runner_identity.email)
 }
 
+# Service account used to invoke the cloud run service through the push subscription.
+resource "google_service_account" "gcs_to_bq_invoker_identity" {
+  # The account id that is used to generate the service account email. Must be 6-30 characters long and
+  # match the regex [a-z]([-a-z0-9]*[a-z0-9]).
+  account_id = var.gcs_to_bq_invoker_identity_id
+}
+
+# Service account whose identity is used when running the GCS-to-BQ service.
+resource "google_service_account" "gcs_to_bq_runner_identity" {
+  # The account id that is used to generate the service account email. Must be 6-30 characters long and
+  # match the regex [a-z]([-a-z0-9]*[a-z0-9]).
+  account_id = var.gcs_to_bq_runner_identity_id
+}
+
+# Give the GCS-to-BQ invoker service account the existing invoker role so that it can call the GCS-to-BQ service.
+resource "google_cloud_run_service_iam_member" "gcs_to_bq_invoker_binding" {
+  location = var.compute_region
+  service  = google_cloud_run_service.gcs_to_bq_service.name
+  role     = "roles/run.invoker"
+  member   = format("serviceAccount:%s", google_service_account.gcs_to_bq_invoker_identity.email)
+}
+
+# Give the GCS-to-BQ runner service account permissions it needs (e.g. GCS bucket access). Add to the permissions list
+# here if the GCS-to-BQ runner needs access to other GCP resources.
+resource "google_project_iam_custom_role" "gcs_to_bq_runner_role" {
+  role_id     = var.gcs_to_bq_runner_role_id
+  title       = "GCS-to-BQ Runner"
+  description = "Allows reading data from GCS bucket and writing and reading BQ datasets."
+  permissions = ["storage.objects.get", "storage.objects.list", "storage.buckets.get",
+                 "bigquery.datasets.get", "bigquery.tables.create", "bigquery.tables.delete",
+                 "bigquery.tables.get", "bigquery.tables.list", "bigquery.tables.update",
+                 "bigquery.tables.updateData", "bigquery.jobs.create"]
+}
+
+resource "google_project_iam_member" "gcs_to_bq_runner_binding" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.gcs_to_bq_runner_role.id
+  member  = format("serviceAccount:%s", google_service_account.gcs_to_bq_runner_identity.email)
+}
 /* 
  * [END] Service Account Setup 
  */
@@ -285,6 +324,11 @@ resource "google_project_iam_member" "ingestion_runner_binding" {
 /*
  * [BEGIN] Cloud Run Setup
  */
+
+# Create a Pub/Sub topic to trigger the GCS-to-BQ service.
+resource "google_pubsub_topic" "notify_data_ingested" {
+  name = var.notify_data_ingested_topic
+}
 
 # Push subscription for upload_to_gcs topic that invokes the run service.
 resource "google_pubsub_subscription" "ingestion_subscription" {
@@ -332,6 +376,48 @@ resource "google_cloud_run_service" "ingestion_service" {
   autogenerate_revision_name = true
 }
 
+# Push subscription for notify_data_ingested topic that invokes the run service.
+resource "google_pubsub_subscription" "notify_data_ingested_subscription" {
+  name  = var.notify_data_ingested_subscription_name
+  topic = google_pubsub_topic.notify_data_ingested.name
+
+  ack_deadline_seconds = 20
+
+  push_config {
+    # Due to Terraform config language restrictions, index the first status element in a list of one.
+    push_endpoint = google_cloud_run_service.gcs_to_bq_service.status.0.url
+    oidc_token {
+      service_account_email = google_service_account.gcs_to_bq_invoker_identity.email
+    }
+  }
+}
+
+# Cloud Run service for loading GCS buckets into Bigquery.
+resource "google_cloud_run_service" "gcs_to_bq_service" {
+  name     = var.run_gcs_to_bq_service_name
+  location = var.compute_region
+  project  = var.project_id
+
+  template {
+    spec {
+      containers {
+        image = var.run_gcs_to_bq_image_path
+        env {
+          # Name of BQ dataset that we will add the tables to. This currently points to the main BQ dataset.
+          name  = "DATASET_NAME"
+          value = var.bq_dataset_name
+        }
+      }
+      service_account_name = google_service_account.gcs_to_bq_runner_identity.email
+    }
+  }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+  autogenerate_revision_name = true
+}
 /* 
  * [END] Cloud Run Setup
  */

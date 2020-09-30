@@ -1,3 +1,4 @@
+# General
 variable "project_id" {
   description = "Google Project ID"
   type        = string
@@ -9,15 +10,15 @@ variable "compute_region" {
   default     = "us-central1"
 }
 
-variable "gcs_landing_bucket" {
-  description = "Name of the landing GCS bucket"
-  type        = string
-}
-
 variable "gcs_region" {
   description = "Region for Google Cloud Storage"
   type        = string
   default     = "US"
+}
+
+variable "gcs_landing_bucket" {
+  description = "Name of the landing GCS bucket"
+  type        = string
 }
 
 variable "bq_dataset_name" {
@@ -25,6 +26,7 @@ variable "bq_dataset_name" {
   type        = string
 }
 
+# GCF code location
 variable "gcf_code_path" {
   description = "Base path where the Cloud Functions code lives"
   type        = string
@@ -35,6 +37,7 @@ variable "gcf_code_bucket" {
   type        = string
 }
 
+# Pub/Sub topics
 variable "upload_to_gcs_topic_name" {
   description = "Name of the Pub/Sub topic used to trigger uploading files to GCS"
   type        = string
@@ -45,6 +48,7 @@ variable "notify_data_ingested_topic" {
   type        = string
 }
 
+# Cloud Functions vars
 variable "gcf_upload_to_gcs_name" {
   description = "Name of the GCF function which uploads files to GCS"
   type        = string
@@ -55,6 +59,7 @@ variable "gcf_gcs_to_bq_name" {
   type        = string
 }
 
+# Cloud Scheduler vars
 variable "household_income_scheduler_name" {
   description = "Name of the Cloud Scheduler job for downloading household income data"
   type        = string
@@ -75,6 +80,7 @@ variable "population_by_race_scheduler_name" {
   type        = string
 }
 
+# Ingestion Cloud Run Service vars
 variable "run_ingestion_service_name" {
   description = "Name of the Cloud Run service for data ingestion"
   type        = string
@@ -85,13 +91,13 @@ variable "run_ingestion_image_path" {
   type        = string
 }
 
-variable "ingestion_invoker_identity_id" {
-  description = "Account id of the service account used to trigger data ingestion"
+variable "ingestion_subscription_name" {
+  description = "Name of push subscription that invokes the ingestion service"
   type        = string
 }
 
-variable "ingestion_subscription_name" {
-  description = "Name of push subscription that invokes the ingestion service"
+variable "ingestion_invoker_identity_id" {
+  description = "Account id of the service account used to trigger data ingestion"
   type        = string
 }
 
@@ -100,12 +106,38 @@ variable "ingestion_runner_identity_id" {
   type        = string
 }
 
-variable "project_number" {
-  description = "Google project number"
-  type        = number
-}
-
 variable "ingestion_runner_role_id" {
   description = "Id of custom role given to the ingestion runner service account"
+  type        = string
+}
+
+# GCS to BQ Cloud Run Service Vars
+variable "run_gcs_to_bq_service_name" {
+  description = "Name of the Cloud Run service for loading GCS data into BigQuery"
+  type        = string
+}
+
+variable "run_gcs_to_bq_image_path" {
+  description = "Path to container image for the Cloud Run GCS-to-BQ service"
+  type        = string
+}
+
+variable "notify_data_ingested_subscription_name" {
+  description = "Name of push subscription that invokes the GCS-to-BQ service"
+  type        = string
+}
+
+variable "gcs_to_bq_invoker_identity_id" {
+  description = "Account id of the service account used to trigger loading from GCS to BQ"
+  type        = string
+}
+
+variable "gcs_to_bq_runner_identity_id" {
+  description = "Account id of the service account used when running the GCS-to-BQ service"
+  type        = string
+}
+
+variable "gcs_to_bq_runner_role_id" {
+  description = "Id of custom role given to the gcs_to_bq runner service account"
   type        = string
 }
