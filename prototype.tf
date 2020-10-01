@@ -320,7 +320,7 @@ resource "google_project_iam_member" "gcs_to_bq_runner_binding" {
 /* 
  * [END] Service Account Setup 
  */
- 
+
 /*
  * [BEGIN] Cloud Run Setup
  */
@@ -531,9 +531,9 @@ resource "google_cloud_scheduler_job" "county_adjacency_scheduler" {
 # Create a Cloud Scheduler task to trigger the Pub/Sub event
 resource "google_cloud_scheduler_job" "primary_care_scheduler" {
   name                    = var.primary_care_access_scheduler_name
-  description             = "Upload primary care access every six hours"
+  description             = "Triggers uploading primary care access to GCS every Thursday at 8:10 ET."
   time_zone               = "America/New_York"
-  schedule                = "0 */6 * * *"
+  schedule                = "10 8 * * 5"
 
   pubsub_target {
     topic_name            = google_pubsub_topic.upload_to_gcs.id
