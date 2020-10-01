@@ -61,7 +61,7 @@ def ingest_data(event, context):
     if 'url' not in event_dict or 'filename' not in event_dict:
       logging.error("Pubsub data must contain fields 'url' and 'filename'")
       return
-    census.upload_county_names(url, gcs_bucket, filename)
+    census.upload_county_names(event_dict['url'], gcs_bucket, event_dict['filename'])
     notify_topic(project_id, notify_data_ingested_topic, id=id, gcs_bucket=gcs_bucket, filename=event_dict['filename'])
   elif id == _STATE_NAMES:
     if 'url' not in event_dict or 'filename' not in event_dict:
