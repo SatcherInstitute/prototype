@@ -37,9 +37,9 @@ def ingest_data(event, context):
   if 'id' not in event_dict or 'gcs_bucket' not in event_dict:
     logging.error("PubSub data missing 'id' or 'gcs_bucket' field")
     return
-  id = event_dict['id']
+  workflow_id = event_dict['id']
   gcs_bucket = event_dict['gcs_bucket']
-  logging.info("Data ingestion recieved message: %s", id)
+  logging.info("Data ingestion recieved message: %s", workflow_id)
 
   if 'PROJECT_ID' not in os.environ:
     logging.error("Environment variable PROJECT_ID missing.")
@@ -51,41 +51,41 @@ def ingest_data(event, context):
   project_id = os.environ['PROJECT_ID']
   notify_data_ingested_topic = os.environ['NOTIFY_DATA_INGESTED_TOPIC']
 
-  if id == _HOUSEHOLD_INCOME:
+  if workflow_id == _HOUSEHOLD_INCOME:
     if 'url' not in event_dict or 'filename' not in event_dict:
       logging.error("Pubsub data must contain fields 'url' and 'filename'")
       return
     census.upload_household_income(event_dict['url'], gcs_bucket, event_dict['filename'])
-    notify_topic(project_id, notify_data_ingested_topic, id=id, gcs_bucket=gcs_bucket, filename=event_dict['filename'])
-  elif id == _COUNTY_NAMES:
+    notify_topic(project_id, notify_data_ingested_topic, id=workflow_id, gcs_bucket=gcs_bucket, filename=event_dict['filename'])
+  elif workflow_id == _COUNTY_NAMES:
     if 'url' not in event_dict or 'filename' not in event_dict:
       logging.error("Pubsub data must contain fields 'url' and 'filename'")
       return
     census.upload_county_names(event_dict['url'], gcs_bucket, event_dict['filename'])
-    notify_topic(project_id, notify_data_ingested_topic, id=id, gcs_bucket=gcs_bucket, filename=event_dict['filename'])
-  elif id == _STATE_NAMES:
+    notify_topic(project_id, notify_data_ingested_topic, id=workflow_id, gcs_bucket=gcs_bucket, filename=event_dict['filename'])
+  elif workflow_id == _STATE_NAMES:
     if 'url' not in event_dict or 'filename' not in event_dict:
       logging.error("Pubsub data must contain fields 'url' and 'filename'")
       return
     census.upload_state_names(event_dict['url'], gcs_bucket, event_dict['filename'])
-    notify_topic(project_id, notify_data_ingested_topic, id=id, gcs_bucket=gcs_bucket, filename=event_dict['filename'])
-  elif id == _POPULATION_BY_RACE:
+    notify_topic(project_id, notify_data_ingested_topic, id=workflow_id, gcs_bucket=gcs_bucket, filename=event_dict['filename'])
+  elif workflow_id == _POPULATION_BY_RACE:
     if 'url' not in event_dict or 'filename' not in event_dict:
       logging.error("Pubsub data must contain fields 'url' and 'filename'")
       return
     census.upload_population_by_race(event_dict['url'], gcs_bucket, event_dict['filename'])
-    notify_topic(project_id, notify_data_ingested_topic, id=id, gcs_bucket=gcs_bucket, filename=event_dict['filename'])
-  elif id == _URGENT_CARE_FACILITIES or id == _COUNTY_ADJACENCY:
+    notify_topic(project_id, notify_data_ingested_topic, id=workflow_id, gcs_bucket=gcs_bucket, filename=event_dict['filename'])
+  elif workflow_id == _URGENT_CARE_FACILITIES or id == _COUNTY_ADJACENCY:
     if 'url' not in event_dict or 'filename' not in event_dict:
       logging.error("Pubsub data must contain fields 'url' and 'filename'")
       return
     url_file_to_gcs(event_dict['url'], None, gcs_bucket, event_dict['filename'])
-    notify_topic(project_id, notify_data_ingested_topic, id=id, gcs_bucket=gcs_bucket, filename=event_dict['filename'])
-  elif id == _PRIMARY_CARE_ACCESS:
+    notify_topic(project_id, notify_data_ingested_topic, id=workflow_id, gcs_bucket=gcs_bucket, filename=event_dict['filename'])
+  elif workflow_id == _PRIMARY_CARE_ACCESS:
     if 'fileprefix' not in event_dict:
       logging.error("Pubsub data must contain field 'fileprefix'")
       return
     upload_primary_care_access(gcs_bucket, event_dict['fileprefix']);
-    notify_topic(project_id, notify_data_ingested_topic, id=id, gcs_bucket=gcs_bucket, fileprefix=event_dict['fileprefix'])
+    notify_topic(project_id, notify_data_ingested_topic, id=workflow_id, gcs_bucket=gcs_bucket, fileprefix=event_dict['fileprefix'])
   else: 
-    logging.warning("ID: %s, is not a valid id", id)
+    logging.warning("ID: %s, is not a valid id", workflow_id)

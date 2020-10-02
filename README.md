@@ -3,12 +3,12 @@ Install Cloud SDK ([Quickstart](https://cloud.google.com/sdk/docs/quickstart))
 Install Terraform ([Getting started](https://learn.hashicorp.com/tutorials/terraform/install-cli?in=terraform/gcp-get-started))  
 Install Docker Desktop ([Get Docker](https://docs.docker.com/get-docker/)) 
 
-gcloud config set project temporary-sandbox-290223
+`gcloud config set project <project-id>`
 
 ### Python environment setup
 
-1. Create a virtual environment, for example: `python3 -m venv ../my-virutal-environment`
-2. Activate the venv: `source ../my-virutal-environment/bin/activate`
+1. Create a virtual environment in your project directory, for example: `python3 -m venv .venv`
+2. Activate the venv: `source .venv/bin/activate`
 3. Install pip-tools and other packages as needed: `pip install pip-tools`
 
 ## Deploying functions manually
@@ -53,12 +53,12 @@ where `upload_to_gcs_topic_name` and `gcs_landing_bucket` are the same as the te
 
 ## Python function dependencies
 
-When developing, if a new dependency is needed:
+If a new dependency is needed while developing, from the module repository:
 1. Add it to requirements.in
 2. Run  `pip-compile requirements.in`. This will generate a requirements.txt file
 3. Run `pip install -r requirements.txt`
 
-During development you can also just run `pip install new_dep`, but remember to add it to requirements.in and run `pip-compile requirements.in` before checking in code or deploying the function. Note, you'll need to have followed the python environment setup described above (Python environment setup) to complete these steps.
+During development you can also just run `pip install new_dep`, but remember to add it to requirements.in and run `pip-compile requirements.in` before checking in code or deploying the function. Note, you'll need to have followed the python environment setup described above [Python environment setup](#python-environment-setup) to complete these steps.
 
 ## Cloud Run local testing with an emulator
 

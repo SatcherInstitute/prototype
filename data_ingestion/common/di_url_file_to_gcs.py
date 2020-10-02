@@ -18,28 +18,40 @@ def url_file_to_gcs(url, url_params, gcs_bucket, dest_filename):
     url_params: URL parameters to be passed to requests.get().
     gcs_bucket: Name of the GCS bucket to upload to (without gs://).
     dest_filename: What to name the downloaded file in GCS. Include the file extension."""
-  try_urls_to_download_file_to_gcs([url], url_params, gcs_bucket, dest_filename)
+  download_first_url_to_gcs([url], url_params, gcs_bucket, dest_filename)
 
-def try_urls_to_download_file_to_gcs(url_list, url_params, gcs_bucket, dest_filename):
-  """Attempts to download a file from a list of potential URLs and uploads as a blob to the given GCS bucket.
+def download_first_url_to_gcs(url_list, url_params, gcs_bucket, dest_filename):
+  """Iterates over the list of potential URLs that may point to the data source until one of the URLs succeeds in downloading.
+    If no URL suceeds, the method will return an error.
 
-     url_list: List of URLs where the file may be found.
-     url_params: URL parameters to be passed to requests.get().
-     gcs_bucket: Name of the GCS bucket to upload to (without gs://).
-     dest_filename: What to name the downloaded file in GCS. Include the file extension."""
+    url_list: List of URLs where the file may be found.
+    url_params: URL parameters to be passed to requests.get().
+    gcs_bucket: Name of the GCS bucket to upload to (without gs://).
+    dest_filename: What to name the downloaded file in GCS. Include the file extension."""
+
+  # Establish connection to valid GCS bucket
+  try: 
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(gcs_bucket)
+  except google.cloud.exceptions.NotFound:
+    logging.error("GCS Bucket %s not found", gcs_bucket)
+
+  # Find a valid file in the URL list or exit
   for url in url_list:
     try:
-        local_path = local_file_path(dest_filename)
-        with requests.get(url, params=url_params) as response, open(local_path, 'wb') as f:
-          response.raise_for_status()
-          f.write(response.content)
-        storage_client = storage.Client()
-        bucket = storage_client.get_bucket(gcs_bucket)
-        blob = bucket.blob(dest_filename)
-        blob.upload_from_filename(local_path)
-        os.remove(local_path)
-        break;
+      file_from_url = requests.get(url, params=url_params)
+      file_from_url.raise_for_status()
+      break;
     except requests.HTTPError as err:
       logging.error("HTTP error for url %s: %s", url, err)
-    except google.cloud.exceptions.NotFound:
-      logging.error("GCS Bucket %s not found", gcs_bucket)
+  if(file_from_url is None):
+    logging.error("No file could be found")
+    return;
+  
+  # Download URL locally, upload to bucket and remove local file
+  local_path = local_file_path(dest_filename)
+  with file_from_url, open(local_path, 'wb') as f:
+    f.write(file_from_url.content)
+  blob = bucket.blob(dest_filename)
+  blob.upload_from_filename(local_path)
+  os.remove(local_path)
