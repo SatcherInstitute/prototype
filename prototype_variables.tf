@@ -86,6 +86,11 @@ variable "population_by_race_scheduler_name" {
 }
 
 # Ingestion Cloud Run Service vars
+variable "primary_care_access_scheduler_name" {
+  description   = "Name of the Cloud Scheduler job for downloading primary care access data"
+  type          = string
+}
+
 variable "run_ingestion_service_name" {
   description = "Name of the Cloud Run service for data ingestion"
   type        = string

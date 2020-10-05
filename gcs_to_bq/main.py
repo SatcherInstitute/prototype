@@ -4,6 +4,7 @@ import logging
 import os
 import common.census_to_bq as census_to_bq
 from common.county_adjacency import write_adjacencies_to_bq
+from common.primary_care_access_to_bq import write_primary_care_access_to_bq
 
 
 _HOUSEHOLD_INCOME = 'HOUSEHOLD_INCOME'
@@ -11,6 +12,7 @@ _STATE_NAMES = 'STATE_NAMES'
 _COUNTY_NAMES = 'COUNTY_NAMES'
 _COUNTY_ADJACENCY = 'COUNTY_ADJACENCY'
 _POPULATION_BY_RACE = 'POPULATION_BY_RACE'
+_PRIMARY_CARE_ACCESS = 'PRIMARY_CARE_ACCESS'
 
 
 def ingest_bucket_to_bq(event, context):
@@ -36,15 +38,12 @@ def ingest_bucket_to_bq(event, context):
     return
   attributes = event['attributes']
   if ('id' not in attributes
-      or 'gcs_bucket' not in attributes
-          or 'filename' not in attributes):
+      or 'gcs_bucket' not in attributes):
     logging.error(
-        "Pubsub attributes must contain 'id', 'gcs_bucket', and 'filename'")
+        "Pubsub attributes must contain 'id' and 'gcs_bucket'")
     return
-
-  id = attributes['id']
+  workflow_id = attributes['id']
   gcs_bucket = attributes['gcs_bucket']
-  filename = attributes['filename']
 
   if 'DATASET_NAME' not in os.environ:
     logging.error("Environment variable DATASET_NAME missing.")
@@ -52,18 +51,22 @@ def ingest_bucket_to_bq(event, context):
 
   dataset = os.environ['DATASET_NAME']
 
-  if id == _HOUSEHOLD_INCOME:
+  if workflow_id == _HOUSEHOLD_INCOME:
     # TODO implement
     pass
-  elif id == _STATE_NAMES:
+  elif workflow_id == _STATE_NAMES:
     census_to_bq.write_state_names_to_bq(
-        dataset, 'state_names', gcs_bucket, filename)
-  elif id == _COUNTY_NAMES:
+        dataset, 'state_names', gcs_bucket, attributes['filename'])
+  elif workflow_id == _COUNTY_NAMES:
     census_to_bq.write_county_names_to_bq(
-        dataset, 'county_names', gcs_bucket, filename)
-  elif id == _COUNTY_ADJACENCY:
+        dataset, 'county_names', gcs_bucket, attributes['filename'])
+  elif workflow_id == _COUNTY_ADJACENCY:
     write_adjacencies_to_bq(
-        dataset, 'county_adjacency', gcs_bucket, filename)
-  elif id == _POPULATION_BY_RACE:
+        dataset, 'county_adjacency', gcs_bucket, attributes['filename'])
+  elif workflow_id == _POPULATION_BY_RACE:
     census_to_bq.write_population_by_race_to_bq(
-        dataset, 'population_by_race', gcs_bucket, filename)
+        dataset, 'population_by_race', gcs_bucket, attributes['filename'])
+  elif workflow_id == _PRIMARY_CARE_ACCESS:
+    write_primary_care_access_to_bq(dataset, 'primary_care_access', gcs_bucket, attributes['fileprefix'])
+  else: 
+    logging.warning("ID: %s, is not a valid id", workflow_id)

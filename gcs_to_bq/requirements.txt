@@ -30,6 +30,7 @@ requests==2.24.0          # via google-api-core
 rsa==4.6                  # via google-auth
 six==1.15.0               # via google-api-core, google-auth, google-cloud-bigquery, google-resumable-media, protobuf, python-dateutil
 urllib3==1.25.10          # via requests
+xlrd==1.2.0               # via -r requirements.in
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

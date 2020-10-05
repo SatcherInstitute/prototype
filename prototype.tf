@@ -220,7 +220,7 @@ resource "google_cloudfunctions_function" "gcs_to_bq" {
   available_memory_mb   = 256
   source_archive_bucket = google_storage_bucket.gcf_code.name
   source_archive_object = google_storage_bucket_object.gcs_to_bq_code.name
-  timeout               = 120
+  timeout               = 500
   entry_point           = "ingest_bucket_to_bq"
   runtime               = "python37"
   event_trigger {
@@ -528,6 +528,20 @@ resource "google_cloud_scheduler_job" "county_adjacency_scheduler" {
   }
 }
 
-/*
- * [END] Cloud Scheduler Setup
- */
+# Create a Cloud Scheduler task to trigger the Pub/Sub event
+resource "google_cloud_scheduler_job" "primary_care_scheduler" {
+  name                    = var.primary_care_access_scheduler_name
+  description             = "Triggers uploading primary care access to GCS every Thursday at 8:10 ET."
+  time_zone               = "America/New_York"
+  schedule                = "10 8 * * 5"
+
+  pubsub_target {
+    topic_name            = google_pubsub_topic.upload_to_gcs.id
+    data                  = base64encode(jsonencode({
+                              "id":"PRIMARY_CARE_ACCESS",
+                              "gcs_bucket": google_storage_bucket.gcs_data_ingestion_landing_bucket.name,
+                              "fileprefix":"primary-care"
+                            }))
+  }
+}
+/* [END] Cloud Scheduler Setup */
