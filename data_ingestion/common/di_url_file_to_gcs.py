@@ -45,12 +45,13 @@ def download_first_url_to_gcs(url_list, url_params, gcs_bucket, dest_filename):
     bucket = storage_client.get_bucket(gcs_bucket)
   except google.cloud.exceptions.NotFound:
     logging.error("GCS Bucket %s not found", gcs_bucket)
+    return
 
   # Find a valid file in the URL list or exit
   file_from_url = get_first_response(url_list, url_params)
   if file_from_url is None:
       logging.error("No file could be found for intended destination: %s", dest_filename)
-      return;
+      return
   
   # Download URL locally, upload to bucket and remove local file
   local_path = local_file_path(dest_filename)
