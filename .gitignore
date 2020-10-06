@@ -6,6 +6,5 @@ data_ingestion/__pycache__
 jenniebrown.tfvars
 terraform.tfstate
 terraform.tfstate.backup
-upload_to_gcs.zip
-gcs_to_bq.zip
+*.zip
 venv

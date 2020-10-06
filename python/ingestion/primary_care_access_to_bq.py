@@ -81,8 +81,8 @@ def write_primary_care_access_to_bq(dataset, table_name, gcs_bucket, fileprefix)
     try:
       frame = read_excel(io=local_path, sheet_name='Ranked Measure Data', skiprows=[0, 1])
       data = []
-      for row_index, row in frame.iterrows():
-        data.append([row[0], row[1], row[2], row[108], row[109], row[110]]);
+      for _, row in frame.iterrows():
+        data.append([row[0], row[1], row[2], row[108], row[109], row[110]])
       new_dataframe = DataFrame(
         data=data,
         columns=('county_fips_code',

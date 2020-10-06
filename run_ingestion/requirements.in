@@ -1,6 +1,9 @@
+google-cloud-bigquery
 google-cloud-core
 google-cloud-pubsub
 google-cloud-storage
+pandas
 requests
 flask
 gunicorn
+xlrd

@@ -154,22 +154,30 @@ resource "google_bigquery_job" "bq_job_pdccr_ucf_joined" {
  */
 
 /*
- * [BEGIN] GCF upload to GCS Setup
+ * [BEGIN] GCF code upload Setup
  */
 
-# Create a ZIP of the data_ingestion folder.
-data "archive_file" "upload_to_gcs_zip" {
+# Create a ZIP of the /python folder.
+data "archive_file" "gcf_ingestion_zip" {
   type        = "zip"
-  source_dir  = "${var.gcf_code_path}/data_ingestion/"
-  output_path = "${var.gcf_code_path}/upload_to_gcs.zip"
+  source_dir  = "${var.gcf_code_path}/python/"
+  output_path = "${var.gcf_code_path}/gcf_ingestion.zip"
 }
 
 # Place the ZIP file into the gcf_code bucket
-resource "google_storage_bucket_object" "upload_to_gcs_code" {
-  name   = "upload_to_gcs.zip"
+resource "google_storage_bucket_object" "gcf_ingestion_code" {
+  name   = "gcf_ingestion.zip"
   bucket = google_storage_bucket.gcf_code.name
-  source = data.archive_file.upload_to_gcs_zip.output_path
+  source = data.archive_file.gcf_ingestion_zip.output_path
 }
+
+/*
+ * [END] GCF code upload Setup
+ */
+
+/*
+ * [BEGIN] GCF upload to GCS Setup
+ */
 
 # Configure the actual Cloud Function for uploading data to GCS
 resource "google_cloudfunctions_function" "data_ingestion_to_gcs" {
@@ -177,7 +185,7 @@ resource "google_cloudfunctions_function" "data_ingestion_to_gcs" {
   description           = "Downloads data files from the internet and uploads to a GCS bucket"
   available_memory_mb   = 256
   source_archive_bucket = google_storage_bucket.gcf_code.name
-  source_archive_object = google_storage_bucket_object.upload_to_gcs_code.name
+  source_archive_object = google_storage_bucket_object.gcf_ingestion_code.name
   timeout               = 120
   entry_point           = "ingest_data"
   runtime               = "python37"
@@ -199,27 +207,13 @@ resource "google_cloudfunctions_function" "data_ingestion_to_gcs" {
  * [BEGIN] GCF GCS to BigQuery Setup
  */
 
-# Create a ZIP of the data_ingestion folder.
-data "archive_file" "gcs_to_bq_zip" {
-  type        = "zip"
-  source_dir  = "${var.gcf_code_path}/gcs_to_bq/"
-  output_path = "${var.gcf_code_path}/gcs_to_bq.zip"
-}
-
-# Place the ZIP file into the gcf_code bucket
-resource "google_storage_bucket_object" "gcs_to_bq_code" {
-  name   = "gcs_to_bq.zip"
-  bucket = google_storage_bucket.gcf_code.name
-  source = data.archive_file.gcs_to_bq_zip.output_path
-}
-
 # Configure Cloud Function for moving data from GCS to BigQuery
 resource "google_cloudfunctions_function" "gcs_to_bq" {
   name                  = var.gcf_gcs_to_bq_name
   description           = "Moves data from GCS bucket to BigQuery"
   available_memory_mb   = 256
   source_archive_bucket = google_storage_bucket.gcf_code.name
-  source_archive_object = google_storage_bucket_object.gcs_to_bq_code.name
+  source_archive_object = google_storage_bucket_object.gcf_ingestion_code.name
   timeout               = 500
   entry_point           = "ingest_bucket_to_bq"
   runtime               = "python37"
@@ -521,7 +515,7 @@ resource "google_cloud_scheduler_job" "county_adjacency_scheduler" {
       # issues when trying to decode the data from cloud functions. It may be a
       # good idea to try to migrate to the official source. At the time of
       # writing the data is identical.
-      "url": "https://data.nber.org/census/geo/county-adjacency/2010/county_adjacency2010.csv",
+      "url" : "https://data.nber.org/census/geo/county-adjacency/2010/county_adjacency2010.csv",
       "gcs_bucket" : google_storage_bucket.gcs_data_ingestion_landing_bucket.name,
       "filename" : "county_adjacency.csv"
     }))

@@ -51,14 +51,22 @@ For example, you can use the following command to trigger ingestion for the list
 
 where `upload_to_gcs_topic_name` and `gcs_landing_bucket` are the same as the terraform variables of the same name
 
-## Python function dependencies
+## Shared python code
+In order to easily share code between services, most python code should go in the `/python` directory. This directory is set up as a package via the `setup.py` file. Shared code should be put in sub-packages with an `__init__.py` file. If a new sub-package is added, update `setup.py` to specify the name of the sub-package via the `packages` arg.
 
-If a new dependency is needed while developing, from the module repository:
-1. Add it to requirements.in
-2. Run  `pip-compile requirements.in`. This will generate a requirements.txt file
-3. Run `pip install -r requirements.txt`
+To work with the code locally, run `pip install ./python` from the root project directory. If your IDE complains about imports after changing code in `/python`, re-run `pip install ./python`.
 
-During development you can also just run `pip install new_dep`, but remember to add it to requirements.in and run `pip-compile requirements.in` before checking in code or deploying the function. Note, you'll need to have followed the python environment setup described above [Python environment setup](#python-environment-setup) to complete these steps.
+Note: the `/python` package has three root-level files that aren't necessary: `main.py`, `requirements.in`, and `requirements.txt`. These exist purely so the whole `/python` package can be deployed as a cloud function, in case people are relying on that for development/quick iteration. Due to limitations with cloud functions, these files have to exist directly in the root package. We should eventually remove these.
+
+## Python dependencies
+When developing, if a new dependency is needed:
+1. Add it to the `<service_directory>/requirements.in` file, where `<service_directory>` is the root-level directory for the service that needs the dependency. For example, dependencies needed for `run_ingestion` should go in `run_ingestion/requirements.in`
+2. Run `cd <service_directory>`, then `pip-compile requirements.in`. This will generate a `requirements.txt` file.
+3. Run `pip install -r requirements.txt` to ensure your local environment has the dependencies.
+
+During development you can also just run `pip install <new_dep>`, but remember to add it to `requirements.in` and run `pip-compile requirements.in` before checking in code or deploying the function. Note, you'll need to have followed the python environment setup described above [Python environment setup](#python-environment-setup) to complete these steps.
+
+If dependencies are needed for code that is shared between services, update the `requirements.in` and `requirements.txt` files in each of the services. We may later want to move to a different model, eg one `/python/requirements.in` file for all services, or one per `/python/<sub_package>`. These have tradeoffs like build complexity vs pulling in unnecessary deps, so for now just put deps in each service directly.
 
 ## Cloud Run local testing with an emulator
 
@@ -102,14 +110,15 @@ Before deploying, make sure you have installed Terraform and a Docker client (e.
 2. Configure docker to use credentials through gcloud.  
 ```gcloud auth configure-docker```
 3. On the command line, navigate to your project directory and initialize terraform.  
-   ```cd path/to/your/project
+   ```
+   cd path/to/your/project
    terraform init
    ```
 4. Build and push your Docker images to Google Container Registry. Select any unique identifier for `your-[ingestion|gcs-to-bq]-image-name`.
    ```bash
    # Build the images locally
-   docker build -t gcr.io/<project-id>/<your-ingestion-image-name> run_ingestion/
-   docker build -t gcr.io/<project-id>/<your-gcs-to-bq-image-name> run_gcs_to_bq/
+   docker build -t gcr.io/<project-id>/<your-ingestion-image-name> -f run_ingestion/Dockerfile .
+   docker build -t gcr.io/<project-id>/<your-gcs-to-bq-image-name> -f run_gcs_to_bq/Dockerfile .
    
    # Upload the image to Google Container Registry
    docker push gcr.io/<project-id>/<your-ingestion-image-name>
@@ -127,11 +136,14 @@ Before deploying, make sure you have installed Terraform and a Docker client (e.
    terraform apply -var="run_ingestion_image_path=$TF_VAR_run_ingestion_image_path" \
    -var="run_gcs_to_bq_image_path=$TF_VAR_run_gcs_to_bq_image_path
    ```
+   Alternatively, if you aren't familiar with bash or are on Windows, you can run the above `gcloud container images describe` commands manually and copy/paste the output into your tfvars file for the `run_ingestion_image_path` and `run_gcs_to_bq_image_path` variables.
 6. To redeploy, e.g. after making changes to a Cloud Run service, repeat steps 4-5. Make sure you run the commands from your base project dir.
 
-Note: Currently the setup deploys both a cloud funtion and a cloud run instance for each pipeline. These are duplicates of each other. Eventually, we will delete the cloud fuctions, but for now you can just comment out the setup for whichever one you don't want to use in `prototype.tf`
+### Terraform deployment notes
+Currently the setup deploys both a cloud funtion and a cloud run instance for each pipeline. These are duplicates of each other. Eventually, we will delete the cloud fuctions, but for now you can just comment out the setup for whichever one you don't want to use in `prototype.tf`
 
-Note: Terraform doesn't diff the contents of the functions/cloud run service, so to redeploy them you can either
-1. Call `terraform destroy` every time before `terraform apply`, 
-2. Use [`terraform taint`](https://www.terraform.io/docs/commands/taint.html) to mark a resource as requiring redeploy, or
-3. In the case of Cloud Run, use the fully qualified digest as the image path as described in Step 5.
+Terraform doesn't automatically diff the contents of the functions/cloud run service, so simply calling `terraform apply` after making code changes won't upload your new changes. This is why Steps 4 and 5 are needed above. Here are several alternatives:
+- Use [`terraform taint`](https://www.terraform.io/docs/commands/taint.html) to mark a resource as requiring redeploy. Eg `terraform taint google_cloud_run_service.ingestion_service`
+  - For Cloud Run, you can then set the `run_ingestion_image_path` variable in your tfvars file to `gcr.io/<project-id>/<your-ingestion-image-name>` and `run_gcs_to_bq_image_path` to `gcr.io/<project-id>/<your-gcs-to-bq-image-name>`. Then replace Step 5 above with just `terraform apply`. Step 4 is still required.
+  - For Cloud Functions, no extra work is needed, just run `terraform taint` and then `terraform apply`
+- For Cloud Functions, call `terraform destroy` every time before `terraform apply`. This is slow but a good way to start from a clean slate. Note that this doesn't remove old container images so it doesn't help for Cloud Run services.
