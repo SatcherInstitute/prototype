@@ -329,7 +329,7 @@ resource "google_pubsub_subscription" "ingestion_subscription" {
   name  = var.ingestion_subscription_name
   topic = google_pubsub_topic.upload_to_gcs.name
 
-  ack_deadline_seconds = 20
+  ack_deadline_seconds = 60
 
   push_config {
     # Due to Terraform config language restrictions, index the first status element in a list of one.
@@ -349,7 +349,7 @@ resource "google_cloud_run_service" "ingestion_service" {
   template {
     spec {
       containers {
-        image = var.run_ingestion_image_path
+        image = format("gcr.io/%s/%s", var.project_id, var.ingestion_image_name) 
         env {
           name  = "PROJECT_ID"
           value = var.project_id
@@ -375,7 +375,11 @@ resource "google_pubsub_subscription" "notify_data_ingested_subscription" {
   name  = var.notify_data_ingested_subscription_name
   topic = google_pubsub_topic.notify_data_ingested.name
 
-  ack_deadline_seconds = 20
+  ack_deadline_seconds = 60
+
+  retry_policy {
+    minimum_backoff = "30s"
+  }
 
   push_config {
     # Due to Terraform config language restrictions, index the first status element in a list of one.
@@ -395,11 +399,17 @@ resource "google_cloud_run_service" "gcs_to_bq_service" {
   template {
     spec {
       containers {
-        image = var.run_gcs_to_bq_image_path
+        image = format("gcr.io/%s/%s", var.project_id, var.gcs_to_bq_image_name)
         env {
           # Name of BQ dataset that we will add the tables to. This currently points to the main BQ dataset.
           name  = "DATASET_NAME"
           value = var.bq_dataset_name
+        }
+
+        resources {
+          limits = {
+            memory = "2G"
+          }
         }
       }
       service_account_name = google_service_account.gcs_to_bq_runner_identity.email

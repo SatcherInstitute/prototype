@@ -45,7 +45,7 @@ def upload_household_income(url, gcs_bucket, filename):
         get_household_income_columns().keys())
     url_params['time'] = year
     url_file_to_gcs(
-        url, url_params, gcs_bucket, '{}_{}.csv'.format(filename, year))
+        url, url_params, gcs_bucket, '{}_{}.json'.format(filename, year))
 
 
 def upload_state_names(url, gcs_bucket, filename):

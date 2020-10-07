@@ -96,8 +96,8 @@ variable "run_ingestion_service_name" {
   type        = string
 }
 
-variable "run_ingestion_image_path" {
-  description = "Path to container image for the Cloud Run ingestion service"
+variable "ingestion_image_name" {
+  description = "Name of container image for the Cloud Run ingestion service"
   type        = string
 }
 
@@ -127,8 +127,8 @@ variable "run_gcs_to_bq_service_name" {
   type        = string
 }
 
-variable "run_gcs_to_bq_image_path" {
-  description = "Path to container image for the Cloud Run GCS-to-BQ service"
+variable "gcs_to_bq_image_name" {
+  description = "Name of container image for the Cloud Run GCS-to-BQ service"
   type        = string
 }
 

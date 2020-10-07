@@ -26,4 +26,4 @@ def write_adjacencies_to_bq(dataset, table_name, gcs_bucket, filename):
     'neighbor_geoids': 'STRING'
   }
   col_modes = {'neighbor_geoids': 'REPEATED'}
-  append_dataframe_to_bq(frame, column_types, dataset, table_name, col_modes)
+  append_dataframe_to_bq(frame, dataset, table_name, column_types=column_types, col_modes=col_modes)

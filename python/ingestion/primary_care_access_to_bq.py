@@ -99,7 +99,7 @@ def write_primary_care_access_to_bq(dataset, table_name, gcs_bucket, fileprefix)
         'primary_care_physicians_rate': 'FLOAT64', 
         'primary_care_physicians_ratio': 'STRING'
       }
-      append_dataframe_to_bq(new_dataframe, column_types, dataset, table_name)
+      append_dataframe_to_bq(new_dataframe, dataset, table_name, column_types=column_types)
     except json.JSONDecodeError as err:
       msg = 'Unable to write to BigQuery due to improperly formatted data: {}'
       logging.error(msg.format(err))

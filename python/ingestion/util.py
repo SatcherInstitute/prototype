@@ -73,6 +73,7 @@ def ingest_data_to_gcs(event):
   else:
     raise RuntimeError("ID: %s, is not a valid id", workflow_id)
 
+  logging.info("Successfully uploaded data to GCS for workflow {}".format(workflow_id))
   notify_topic(project_id, notify_data_ingested_topic, **event_dict)
 
 
@@ -102,8 +103,7 @@ def ingest_bucket_to_bq(event):
 
   dataset = os.environ['DATASET_NAME']
 
-  if (workflow_id == _HOUSEHOLD_INCOME
-      or workflow_id == _URGENT_CARE_FACILITIES
+  if (workflow_id == _URGENT_CARE_FACILITIES
       or workflow_id == _CDC_COVID_DEATHS):
     # TODO implement
     pass
@@ -122,5 +122,10 @@ def ingest_bucket_to_bq(event):
   elif workflow_id == _PRIMARY_CARE_ACCESS:
     write_primary_care_access_to_bq(
         dataset, 'primary_care_access', gcs_bucket, fileprefix)
+  elif workflow_id == _HOUSEHOLD_INCOME:
+    census_to_bq.write_household_income_to_bq(
+      dataset, 'SAIPE_household_income_poverty_estimates', gcs_bucket, filename)
   else:
     raise RuntimeError("ID: %s, is not a valid id", workflow_id)
+
+  logging.info("Successfully uploaded to BigQuery for workflow {}".format(workflow_id))

@@ -19,7 +19,7 @@ def ingest_bucket_to_bq():
     return ('', 400)
 
   event = envelope['message']
-  logging.info(f"message: {event}")
+  logging.info(f"Received message: {event}")
 
   try:
     util.ingest_bucket_to_bq(event)
@@ -27,3 +27,7 @@ def ingest_bucket_to_bq():
   except Exception as e:
     logging.error(e)
     return ('', 400)
+
+
+if __name__ == "__main__":
+  app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))

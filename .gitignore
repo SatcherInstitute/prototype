@@ -3,8 +3,10 @@
 __pycache__
 data_ingestion/__pycache__
 .terraform/plugins
+apply_terraform
 jenniebrown.tfvars
-terraform.tfstate
-terraform.tfstate.backup
-*.zip
+push_images
 venv
+*.tfstate
+*.tfstate.backup
+*.zip

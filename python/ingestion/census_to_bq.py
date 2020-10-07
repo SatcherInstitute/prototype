@@ -1,7 +1,11 @@
 import json
 import logging
-from pandas import DataFrame
-from .gcs_to_bq_util import load_values_as_dataframe, append_dataframe_to_bq
+
+import pandas
+from google.cloud import storage
+
+from .gcs_to_bq_util import (append_dataframe_to_bq, load_values_as_dataframe,
+                             load_values_blob_as_dataframe)
 
 
 def write_state_names_to_bq(dataset, table_name, gcs_bucket, filename):
@@ -18,7 +22,7 @@ def write_state_names_to_bq(dataset, table_name, gcs_bucket, filename):
       'NAME': 'state_name'
     })
     column_types = {'state_fips_code': 'STRING', 'state_name': 'STRING'}
-    append_dataframe_to_bq(frame, column_types, dataset, table_name)
+    append_dataframe_to_bq(frame, dataset, table_name, column_types=column_types)
   except json.JSONDecodeError as err:
     msg = 'Unable to write to BigQuery due to improperly formatted data: {}'
     logging.error(msg.format(err))
@@ -43,7 +47,7 @@ def write_county_names_to_bq(dataset, table_name, gcs_bucket, filename):
         'state_fips_code': 'STRING',
         'county_fips_code': 'STRING'
     }
-    append_dataframe_to_bq(frame, column_types, dataset, table_name)
+    append_dataframe_to_bq(frame, dataset, table_name, column_types=column_types)
   except json.JSONDecodeError as err:
     msg = 'Unable to write to BigQuery due to improperly formatted data: {}'
     logging.error(msg.format(err))
@@ -98,7 +102,30 @@ def write_population_by_race_to_bq(dataset, table_name, gcs_bucket, filename):
     column_types['state_fips_code'] = 'STRING'
     column_types['county_fips_code'] = 'STRING'
 
-    append_dataframe_to_bq(frame, column_types, dataset, table_name)
+    append_dataframe_to_bq(frame, dataset, table_name, column_types=column_types)
   except json.JSONDecodeError as err:
     msg = 'Unable to write to BigQuery due to improperly formatted data: {}'
     logging.error(msg.format(err))
+
+
+def write_household_income_to_bq(dataset, table_name, gcs_bucket, file_prefix):
+  """Fetches all SAIPE blobs from a GCS bucket and uploads to a single BQ table. Also does some preprocessing.
+
+     dataset: The BigQuery dataset to write to
+     table_name: The name of the BigQuery table to write to
+     gcs_bucket: The name of the GCS bucket to pull from
+     file_prefix: File name prefix used to identify which GCS blobs to fetch"""
+  client = storage.Client()
+  bucket = client.get_bucket(gcs_bucket)
+  saipe_blobs = client.list_blobs(gcs_bucket, prefix=file_prefix)
+
+  frames = [] 
+  for blob in saipe_blobs:
+    frame = load_values_blob_as_dataframe(blob)
+    frames.append(frame)
+
+  concat = pandas.concat(frames, ignore_index=True)
+  # The SAIPE API includes the query predicate columns, which are duplicates of their
+  # ALL_CAPS counterparts. Toss 'em.
+  concat.drop(columns=['state', 'county', 'time'], inplace=True)
+  append_dataframe_to_bq(concat, dataset, table_name)
