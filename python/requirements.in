@@ -1,8 +1,4 @@
-google-cloud
-google-cloud-bigquery
-google-cloud-core
-google-cloud-pubsub
-google-cloud-storage
-pandas
-requests
-xlrd
+# This file only exists for the purposes of deploying the code as a cloud
+# function. It should be cleaned up when we clean up the cloud functions.
+
+-r ingestion/requirements.in

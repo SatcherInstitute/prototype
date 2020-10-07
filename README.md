@@ -52,21 +52,30 @@ For example, you can use the following command to trigger ingestion for the list
 where `upload_to_gcs_topic_name` and `gcs_landing_bucket` are the same as the terraform variables of the same name
 
 ## Shared python code
-In order to easily share code between services, most python code should go in the `/python` directory. This directory is set up as a package via the `setup.py` file. Shared code should be put in sub-packages with an `__init__.py` file. If a new sub-package is added, update `setup.py` to specify the name of the sub-package via the `packages` arg.
+Most python code should go in the `/python` directory, which contains packages that can be installed into any service. Each sub-directory of `/python` is a package with an `__init__.py` file, a `setup.py` file, and a `requirements.in` file. Shared code should go in one of these packages. If a new sub-package is added:
+1. Create a folder `/python/<new_package>`. Inside, add:
+  - An empty `__init__.py` file
+  - A `setup.py` file with options: `name=<new_package>`, `package_dir={'<new_package>': ''}`, and `packages=['<new_package>']`
+  - A `requirements.in` file with the necessary dependencies
+2. For each service that depends on `/python/<new_package>`, follow instructions at [Adding an internal dependency](#adding-an-internal-dependency)
 
-To work with the code locally, run `pip install ./python` from the root project directory. If your IDE complains about imports after changing code in `/python`, re-run `pip install ./python`.
+To work with the code locally, run `pip install ./python/<package>` from the root project directory. If your IDE complains about imports after changing code in `/python`, re-run `pip install ./python/<package>`.
 
-Note: the `/python` package has three root-level files that aren't necessary: `main.py`, `requirements.in`, and `requirements.txt`. These exist purely so the whole `/python` package can be deployed as a cloud function, in case people are relying on that for development/quick iteration. Due to limitations with cloud functions, these files have to exist directly in the root package. We should eventually remove these.
+Note: the `/python` directory has three root-level files that aren't necessary: `main.py`, `requirements.in`, and `requirements.txt`. These exist purely so the whole `/python` directory can be deployed as a cloud function, in case people are relying on that for development/quick iteration. Due to limitations with cloud functions, these files have to exist directly in the root folder. We should eventually remove these.
 
-## Python dependencies
-When developing, if a new dependency is needed:
-1. Add it to the `<service_directory>/requirements.in` file, where `<service_directory>` is the root-level directory for the service that needs the dependency. For example, dependencies needed for `run_ingestion` should go in `run_ingestion/requirements.in`
-2. Run `cd <service_directory>`, then `pip-compile requirements.in`. This will generate a `requirements.txt` file.
-3. Run `pip install -r requirements.txt` to ensure your local environment has the dependencies.
-
-During development you can also just run `pip install <new_dep>`, but remember to add it to `requirements.in` and run `pip-compile requirements.in` before checking in code or deploying the function. Note, you'll need to have followed the python environment setup described above [Python environment setup](#python-environment-setup) to complete these steps.
-
-If dependencies are needed for code that is shared between services, update the `requirements.in` and `requirements.txt` files in each of the services. We may later want to move to a different model, eg one `/python/requirements.in` file for all services, or one per `/python/<sub_package>`. These have tradeoffs like build complexity vs pulling in unnecessary deps, so for now just put deps in each service directly.
+## Adding python dependencies
+### Adding an external dependency
+1. Add the dependency to the appropriate `requirements.in` file.
+  - If the dependency is used by `/python/<package>`, add it to the `/python/<package>/requirements.in` file.
+  - If the dependency is used directly by a service, add it to the `<service_directory>/requirements.in` file.
+2. For each service that needs the dependency (for deps in `/python/<package>` this means every service that depends on `/python/<package>`):
+  - Run `cd <service_directory>`, then `pip-compile requirements.in` where `<service_directory>` is the root-level directory for the service. This will generate a `requirements.txt` file.
+  - Run `pip install -r requirements.txt` to ensure your local environment has the dependencies, or run `pip install <new_dep>` directly. Note, you'll first need to have followed the python environment setup described above [Python environment setup](#python-environment-setup).
+### Adding an internal dependency
+If a service adds a dependency on `/python/<some_package>`:
+  - Add `-r ../python/<some_package>/requirements.in` to the `<service_directory>/requirements.in` file. This will ensure that any deps needed for the package get installed for the service.
+  - Follow step 2 of [Adding an external dependency](#adding-an-external-dependency) to generate the relevant `requirements.txt` files.
+  - Add the line `RUN pip install ./python/<some_package>` to `<service_directory>/Dockerfile` 
 
 ## Cloud Run local testing with an emulator
 
