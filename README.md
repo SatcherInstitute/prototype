@@ -1,5 +1,32 @@
 # Health Equity Tracker Prototype
 
+## Contributing
+To contribute to this project:
+1. [Fork the repository on github](https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/fork-a-repo)
+2. On your development machine, clone your forked repo and add the official repo as a remote.
+    - Tip: by convention, the official repo is added with the name `upstream`. This can be done with the command `git remote add upstream git@github.com:SatcherInstitute/<repo>.git`
+
+When you're ready to make changes:
+1. Pull the latest changes from the official repo.
+    - Tip: If your official remote is named `upstream`, run `git pull upstream master`
+2. Create a local branch, make changes, and commit to your local branch. Repeat until changes are ready for review.
+3. [Optional] Rebase your commits so you have few commits with clear commit messages.
+4. Push your branch to your remote fork, use the github UI to open a pull request (PR), and add reviewer(s).
+5. Push new commits to your remote branch as you respond to reviewer comments.
+    - Note: once a PR is under review, don't rebase changes you've already pushed to the PR. This can confuse reviewers.
+6. When ready to submit, use the "Squash and merge" option. This maintains linear history and ensures your entire PR is merged as a single commit, while being simple to use in most cases. If there are conflicts, pull the latest changes from master, merge them into your PR, and try again.
+
+Note that there are a few downsides to "Squash and merge"
+- The official repo will not show commits from collaborators if the PR is a collaborative branch.
+- Working off the same branch or a dependent branch duplicates commits on the dependent branch and can cause repeated merge conflicts. To work around this, if you have a PR `my_branch_1` and you want to start work on a new PR that is dependent on `my_branch_1`, you can do the following:
+  1. Create a new local branch `my_branch_2` based on `my_branch_1`. Continue to develop on `my_branch_2`.
+  2. If `my_branch_1` is updated (including by merging changes from master), switch to `my_branch_2` and run `git rebase -i my_branch_1` to incorporate the changes into `my_branch_2` while maintaining the the branch dependency.
+  3. When review is done, squash and merge `my_branch_1`. Don't delete `my_branch_1`yet.
+  4. From local client, go to master branch and pull from master to update the local master branch with the squashed change.
+  5. From local client, run `git rebase --onto master my_branch_1 my_branch_2`. This tells git to move all the commits between `my_branch_1` and `my_branch_2` onto master. You can now delete `my_branch_1`.
+
+Read more about the forking workflow [here](https://www.atlassian.com/git/tutorials/comparing-workflows/forking-workflow). For details on "Squash and merge" see [here](https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/about-merge-methods-on-github#squashing-your-merge-commits)
+
 ## One-time setup
 
 Install Cloud SDK ([Quickstart](https://cloud.google.com/sdk/docs/quickstart))  
@@ -33,10 +60,6 @@ Once a function is created, to deploy it from the command line:
 2. Run `gcloud functions deploy fn_name`
 
 Note that this **deploys the contents of the current directory** to the **cloud function specified by fn_name**. Be careful as this will overwrite the contents of `fn_name` with the contents of the current directory. You can use this for testing and development by deploying the source code to a test function.
-
-### Deploying other resources
-
-I haven't tried deploying resources other than functions from the command line. Resources like GCS buckets and topics are pretty easy to create from the cloud console though, so it's probably easiest to set those up manually.
 
 ### Changing function configuration
 
@@ -145,8 +168,8 @@ After your Docker container successfully builds and is running locally you can s
 Before deploying, make sure you have installed Terraform and a Docker client (e.g. Docker Desktop). See [One time setup](#one-time-setup) above.
 
 1. Create your own `terraform.tfvars` file in the same directory as the other terraform files. For each variable declared in `prototype_variables.tf` that doesn't have a default, add your own for testing. Typically your own variables should be unique and can just be prefixed with your name or ldap. There are some that have specific requirements like project ids, code paths, and image paths.
-2. Configure docker to use credentials through gcloud.  
-```gcloud auth configure-docker```
+2. Configure docker to use credentials through gcloud.
+   `gcloud auth configure-docker`
 3. On the command line, navigate to your project directory and initialize terraform.  
 
    ```bash
