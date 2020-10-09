@@ -39,8 +39,9 @@ def append_dataframe_to_bq(
   # Repeated fields are not supported with bigquery.Client.load_table_from_dataframe()
   # (See https://github.com/googleapis/python-bigquery/issues/19). We have to use
   # load_table_from_json as a workaround.
-  load_job = client.load_table_from_json(
-      frame.to_dict(orient='records'), table_id, job_config=job_config)
+  result = frame.to_json(orient='records')	
+  json_data = json.loads(result)	
+  load_job = client.load_table_from_json(json_data,	table_id,job_config=job_config)
   load_job.result()  # Wait for table load to complete.
 
 
@@ -109,7 +110,10 @@ def load_csv_as_dataframe(gcs_bucket, filename, dtype=None):
   blob = bucket.blob(filename)
   local_path = local_file_path(filename)
   blob.download_to_filename(local_path)
-  return pandas.read_csv(local_path, dtype=dtype)
+  frame = pandas.read_csv(local_path, dtype=dtype)
+
+  os.remove(local_path)
+  return frame
 
 
 def local_file_path(filename):

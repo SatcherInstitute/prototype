@@ -9,6 +9,7 @@ from ingestion.pubsub_publisher import notify_topic
 from ingestion.di_url_file_to_gcs import url_file_to_gcs
 from ingestion.county_adjacency import write_adjacencies_to_bq
 from ingestion.primary_care_access_to_bq import write_primary_care_access_to_bq
+from ingestion.cdc_to_bq import write_covid_deaths_to_bq
 
 
 # Data source name literals. These correspond to a specific data ingestion
@@ -103,8 +104,7 @@ def ingest_bucket_to_bq(event):
 
   dataset = os.environ['DATASET_NAME']
 
-  if (workflow_id == _URGENT_CARE_FACILITIES
-      or workflow_id == _CDC_COVID_DEATHS):
+  if workflow_id == _URGENT_CARE_FACILITIES:
     # TODO implement
     pass
   elif workflow_id == _STATE_NAMES:
@@ -122,6 +122,8 @@ def ingest_bucket_to_bq(event):
   elif workflow_id == _PRIMARY_CARE_ACCESS:
     write_primary_care_access_to_bq(
         dataset, 'primary_care_access', gcs_bucket, fileprefix)
+  elif workflow_id == _CDC_COVID_DEATHS:
+    write_covid_deaths_to_bq(dataset, 'covid_deaths', gcs_bucket, filename) 
   elif workflow_id == _HOUSEHOLD_INCOME:
     census_to_bq.write_household_income_to_bq(
       dataset, 'SAIPE_household_income_poverty_estimates', gcs_bucket, filename)
