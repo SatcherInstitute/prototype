@@ -4,7 +4,7 @@ import logging
 import os
 import ingestion.census as census
 import ingestion.census_to_bq as census_to_bq
-from ingestion.primary_care_access import upload_primary_care_access
+from ingestion.primary_care_access_ingest import upload_primary_care_access
 from ingestion.pubsub_publisher import notify_topic
 from ingestion.di_url_file_to_gcs import url_file_to_gcs
 from ingestion.county_adjacency import write_adjacencies_to_bq
@@ -121,7 +121,7 @@ def ingest_bucket_to_bq(event):
         dataset, 'population_by_race', gcs_bucket, filename)
   elif workflow_id == _PRIMARY_CARE_ACCESS:
     write_primary_care_access_to_bq(
-        dataset, 'primary_care_access', gcs_bucket, fileprefix)
+        dataset, 'primary_care_access_kkz2', gcs_bucket, fileprefix)
   elif workflow_id == _HOUSEHOLD_INCOME:
     census_to_bq.write_household_income_to_bq(
       dataset, 'SAIPE_household_income_poverty_estimates', gcs_bucket, filename)

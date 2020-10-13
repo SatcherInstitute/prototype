@@ -8,10 +8,10 @@ def ingest_data(event, context):
   try:
     util.ingest_data_to_gcs(event)
   except Exception as e:
-    logging.error(e)
+    logging.exception(e)
 
 def ingest_bucket_to_bq(event, context):
   try:
     util.ingest_bucket_to_bq(event)
   except Exception as e:
-    logging.error(e)
+    logging.exception(e)
