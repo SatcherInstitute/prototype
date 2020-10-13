@@ -121,7 +121,7 @@ def ingest_bucket_to_bq(event):
         dataset, 'population_by_race', gcs_bucket, filename)
   elif workflow_id == _PRIMARY_CARE_ACCESS:
     write_primary_care_access_to_bq(
-        dataset, 'primary_care_access_kkz2', gcs_bucket, fileprefix)
+        dataset, 'primary_care_access', gcs_bucket, fileprefix)
   elif workflow_id == _HOUSEHOLD_INCOME:
     census_to_bq.write_household_income_to_bq(
       dataset, 'SAIPE_household_income_poverty_estimates', gcs_bucket, filename)
